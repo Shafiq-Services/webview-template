@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_demo/constants/my_app_colors.dart';
 import 'package:webview_demo/constants/my_app_urls.dart';
+import 'package:webview_demo/view/screens/splash_onboarding/onboarding_screen.dart';
 import 'package:webview_demo/view/screens/webview_screens/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -23,12 +25,7 @@ class _SplashScreenState extends State<SplashScreen> {
           context,
           MaterialPageRoute(
             builder: (context) {
-              return 
-              // isFirstTime
-              //    ? 
-              //     const OnboardingScreen()
-                  // : 
-                   HomeScreen();
+              return isFirstTime ? const OnboardingScreen() : HomeScreen();
             },
           ),
         ),
@@ -46,20 +43,16 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/app_icons/icon2.png',
-              height: 100.0,
-              width: 100.0,
-            ),
-            const SizedBox(height: 20.0),
-             Text(
-              Changes.AppTitle,
-              style: TextStyle(
-                fontSize: 24.0,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
+            Image.asset('assets/app_icons/splash.png', height: 350.0, width: 350.0),
+            // const SizedBox(height: 20.0),
+            //  Text(
+            //   Changes.AppTitle,
+            //   style: TextStyle(
+            //     fontSize: 24.0,
+            //     fontWeight: FontWeight.bold,
+            //     color: Colors.white,
+            //   ),
+            // ),
           ],
         ),
       ),

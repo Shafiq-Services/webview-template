@@ -1,4 +1,4 @@
-package com.example.webview_demo
+package com.offsha.dishup
 
 import io.flutter.embedding.android.FlutterActivity
 

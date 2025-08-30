@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_demo/constants/my_app_colors.dart';
+import 'package:webview_demo/constants/my_app_urls.dart';
 import 'package:webview_demo/view/screens/bottom_navigation_screen.dart';
 import 'package:webview_demo/view/screens/webview_screens/home_screen.dart';
 
@@ -45,24 +47,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         width: size.width,
         child: Stack(
           children: [
-            SizedBox(
-              height: size.height * 2,
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (int page) {
-                  setState(() {
-                    _currentPage = page;
-                  });
-                },
-                itemCount: _items.length,
-                itemBuilder: (context, index) {
-                  return OnboardingPage(
-                    text: onBoardingText[index],
-                    item: _items[index],
-                    label: onBoardingTitle[index],
-                  );
-                },
-              ),
+            PageView.builder(
+              controller: _pageController,
+              onPageChanged: (int page) {
+                setState(() {
+                  _currentPage = page;
+                });
+              },
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                return OnboardingPage(
+                  text: onBoardingText[index],
+                  item: _items[index],
+                  label: onBoardingTitle[index],
+                );
+              },
             ),
             Positioned(
               bottom: MediaQuery.of(context).size.height / 30,
@@ -134,7 +133,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: MediaQuery.of(context).size.height / 120),
+                  SizedBox(height: 20.0),
                 ],
               ),
             ),
@@ -163,7 +162,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     prefs.setBool('isFirstTime', false);
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => BottomNavigationScreen()),
+      MaterialPageRoute(builder: (context) => HomeScreen()),
     );
   }
 }
@@ -189,45 +188,42 @@ class OnboardingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      color: MyColors.konboardingBgColor,
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Image.asset(
-              item.image,
-              fit: BoxFit.contain,
-              height: MediaQuery.of(context).size.height / 1.6,
-              width: MediaQuery.of(context).size.width,
-            ),
-            // SizedBox(
-            //   height: MediaQuery.of(context).size.height / 4,
-            // ),
-            Text(
-              label,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: MediaQuery.of(context).size.width / 16,
-                color: Colors.black,
-              ),
-            ),
-            SizedBox(height: MediaQuery.of(context).size.height / 80),
-            Text(
-              text,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.normal,
-                fontSize: MediaQuery.of(context).size.width / 28,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Image.asset(
+            item.image,
+            height: MediaQuery.of(context).size.height,
+            width: MediaQuery.of(context).size.width,
+          ),
+          // SizedBox(
+          //   height: MediaQuery.of(context).size.height / 4,
+          // ),
+          // Text(
+          //   label,
+          //   maxLines: 2,
+          //   textAlign: TextAlign.center,
+          //   style: TextStyle(
+          //     fontWeight: FontWeight.bold,
+          //     fontSize: MediaQuery.of(context).size.width / 16,
+          //     color: Colors.black,
+          //   ),
+          // ),
+          // SizedBox(height: MediaQuery.of(context).size.height / 80),
+          // Text(
+          //   text,
+          //   maxLines: 2,
+          //   textAlign: TextAlign.center,
+          //   style: TextStyle(
+          //     fontWeight: FontWeight.normal,
+          //     fontSize: MediaQuery.of(context).size.width / 28,
+          //     color: Colors.grey,
+          //   ),
+          // ),
+        ],
       ),
     );
   }

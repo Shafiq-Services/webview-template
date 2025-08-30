@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Reaction Security</string>
+	<string>Dish Up</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Reaction Security</string>
+	<string>Dish Up</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,5 +45,42 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- iOS Permissions for WebView App -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs location access to show your position on the map and provide location-based services.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs location access to provide location-based services.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to capture photos and videos through the web interface.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to select and upload images.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access for voice recording and audio features.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs permission to save photos to your photo library.</string>
+	
+	<!-- App Transport Security - Allow HTTP if needed -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<!-- Add specific domains if you want to be more restrictive -->
+		</dict>
+	</dict>
+	
+	<!-- File Sharing Support -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	
+	<!-- Background Modes if needed -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>background-processing</string>
+	</array>
 </dict>
 </plist>
