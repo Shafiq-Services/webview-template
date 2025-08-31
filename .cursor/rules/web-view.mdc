@@ -1,7 +1,7 @@
 ---
-alwaysApply: true
+description: This is about the project structure and details, but first read "web-view-rules.mdc"
+alwaysApply: false
 ---
-
 # Flutter WebView Template - Complete Project Documentation
 
 ## 🏗️ Project Overview
