@@ -31,16 +31,17 @@ class SubscriptionController {
   static const List<String> pricingPagePaths = ['/Pricing'];
   
   // 📱 Subscription Products Configuration
+  // Note: Using base plan IDs from Google Play Console (new subscription model)
   static const Map<String, SubscriptionConfig> subscriptionPlans = {
     'monthly': SubscriptionConfig(
-      productId: 'monthly_premium',
+      productId: 'monthly_premium',  // 🔧 Format: subscription_id:base_plan_id
       displayName: 'Monthly Premium',
       fallbackPrice: '£2.99',
       priceIdentifiers: ['£2.99', '2.99', 'monthly', 'month'],
       contextKeywords: ['Monthly', 'month', '/month'],
     ),
     'yearly': SubscriptionConfig(
-      productId: 'yearly-premium',
+      productId: 'yearly_premium',   // 🔧 Format: subscription_id:base_plan_id
       displayName: 'Yearly Premium', 
       fallbackPrice: '£29.00',
       priceIdentifiers: ['£29', '29.00', 'yearly', 'year'],
@@ -88,6 +89,7 @@ class SubscriptionController {
 
   final IAPService _iapService = IAPService();
   bool _isInitialized = false;
+  BuildContext? _currentContext; // Store context for showing messages
 
   // Getters
   bool get isInitialized => _isInitialized;
@@ -105,7 +107,12 @@ class SubscriptionController {
 
     try {
       if (kDebugMode) print('🚀 Subscription Controller: Calling IAP service initialize...');
-      final bool success = await _iapService.initialize();
+      
+      // Get all product IDs from our configuration
+      final Set<String> productIds = subscriptionPlans.values.map((config) => config.productId).toSet();
+      if (kDebugMode) print('🚀 Subscription Controller: Product IDs to load: $productIds');
+      
+      final bool success = await _iapService.initialize(productIds: productIds);
       _isInitialized = success;
 
       if (kDebugMode) {
@@ -129,11 +136,31 @@ class SubscriptionController {
         if (kDebugMode) {
           print('❌ Subscription Controller: Purchase error - $error');
         }
+        // Show error message to user
+        if (_currentContext != null && _currentContext!.mounted) {
+          ScaffoldMessenger.of(_currentContext!).showSnackBar(
+            SnackBar(
+              content: Text('❌ Payment Failed: $error'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       };
 
       _iapService.onPurchaseSuccess = (message) {
         if (kDebugMode) {
           print('✅ Subscription Controller: Purchase success - $message');
+        }
+        // Show success message to user
+        if (_currentContext != null && _currentContext!.mounted) {
+          ScaffoldMessenger.of(_currentContext!).showSnackBar(
+            SnackBar(
+              content: Text('✅ Payment Successful! $message'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 4),
+            ),
+          );
         }
       };
 
@@ -149,50 +176,64 @@ class SubscriptionController {
   Future<bool> purchaseMonthlySubscription(BuildContext context) async {
     if (kDebugMode) print('💰 Testing: Monthly purchase requested');
     
+    // Store context for success/error messages
+    _currentContext = context;
+    
     // Check if product exists
     final monthlyConfig = subscriptionPlans['monthly']!;
     final product = _iapService.getProduct(monthlyConfig.productId);
     
-    // Show snackbar for product found status
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(product != null 
-          ? '✅ ProductId found: ${monthlyConfig.productId}' 
-          : '❌ ProductId NOT found: ${monthlyConfig.productId}'),
-        backgroundColor: product != null ? Colors.green : Colors.red,
-        duration: Duration(seconds: 3),
-      ),
-    );
-    
     if (!_isInitialized || product == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Product not available'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
       return false;
     }
 
     try {
       if (kDebugMode) print('💰 Testing: Calling IAP service for monthly');
-      final bool success = await _iapService.purchaseSubscription(monthlyConfig.productId);
+      final bool initiated = await _iapService.purchaseSubscription(monthlyConfig.productId);
       
-      // Show snackbar for payment result
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success 
-            ? '✅ Payment Success: Monthly subscription' 
-            : '❌ Payment Failed: Monthly subscription'),
-          backgroundColor: success ? Colors.green : Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
+      if (initiated) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🔄 Payment initiated...'),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Failed to initiate payment'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
       
-      return success;
+      return initiated;
     } catch (e) {
       if (kDebugMode) print('❌ Testing: Monthly purchase exception: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Payment Error: $e'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Payment Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
       return false;
     }
   }
@@ -201,50 +242,64 @@ class SubscriptionController {
   Future<bool> purchaseYearlySubscription(BuildContext context) async {
     if (kDebugMode) print('💰 Testing: Yearly purchase requested');
     
+    // Store context for success/error messages
+    _currentContext = context;
+    
     // Check if product exists
     final yearlyConfig = subscriptionPlans['yearly']!;
     final product = _iapService.getProduct(yearlyConfig.productId);
     
-    // Show snackbar for product found status
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(product != null 
-          ? '✅ ProductId found: ${yearlyConfig.productId}' 
-          : '❌ ProductId NOT found: ${yearlyConfig.productId}'),
-        backgroundColor: product != null ? Colors.green : Colors.red,
-        duration: Duration(seconds: 3),
-      ),
-    );
-    
     if (!_isInitialized || product == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Product not available'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
       return false;
     }
 
     try {
       if (kDebugMode) print('💰 Testing: Calling IAP service for yearly');
-      final bool success = await _iapService.purchaseSubscription(yearlyConfig.productId);
+      final bool initiated = await _iapService.purchaseSubscription(yearlyConfig.productId);
       
-      // Show snackbar for payment result
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success 
-            ? '✅ Payment Success: Yearly subscription' 
-            : '❌ Payment Failed: Yearly subscription'),
-          backgroundColor: success ? Colors.green : Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
+      if (initiated) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🔄 Payment initiated...'),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Failed to initiate payment'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
       
-      return success;
+      return initiated;
     } catch (e) {
       if (kDebugMode) print('❌ Testing: Yearly purchase exception: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Payment Error: $e'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Payment Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
       return false;
     }
   }
@@ -299,65 +354,72 @@ class SubscriptionController {
   }
   
   
-  // SIMPLIFIED button override for testing
-  function overridePricingButtons() {
-    if (window.dishupButtonsProcessed) {
-      console.log('🧪 Buttons already processed, skipping');
-      return;
-    }
-    
-    // Only run on exact dishup.uk/Pricing page
-    if (!window.location.href.includes('dishup.uk/Pricing')) {
-      console.log('🧪 Not on dishup.uk/Pricing page, skipping');
-      return;
-    }
-    
-    console.log('🧪 TESTING: Finding subscription buttons on dishup.uk/Pricing');
-    
-    const buttons = document.querySelectorAll('button');
-    console.log('🧪 Found', buttons.length, 'buttons total');
-    
-    let buttonsOverridden = 0;
-    
-    buttons.forEach((button, index) => {
-      const buttonText = button.textContent || '';
-      const parentCard = button.closest('[data-dynamic-content="true"]') || button.closest('div');
-      const parentText = parentCard ? parentCard.textContent : '';
-      
-      // Look for subscription buttons
-      if (buttonText.includes('Start 7-Day Free Trial')) {
-        console.log('🧪 Found subscription button', index, ':', buttonText.substring(0, 50));
-        
-        // Determine if monthly or yearly based on parent text
-        const isMonthly = parentText.includes('Monthly') && !parentText.includes('Yearly');
-        const isYearly = parentText.includes('Yearly');
-        
-        console.log('🧪 Button context - Monthly:', isMonthly, 'Yearly:', isYearly);
-        
-        // Override the button
-        button.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          if (isMonthly) {
-            console.log('🧪 Monthly button clicked!');
-            purchaseMonthlySubscription();
-          } else if (isYearly) {
-            console.log('🧪 Yearly button clicked!');
-            purchaseYearlySubscription();
-          } else {
-            console.log('🧪 Unknown button clicked - defaulting to monthly');
-            purchaseMonthlySubscription();
-          }
-        }, { capture: true });
-        
-        buttonsOverridden++;
-      }
-    });
-    
-    window.dishupButtonsProcessed = true;
-    console.log('🧪 TESTING: Overridden', buttonsOverridden, 'subscription buttons');
-  }
+              // SIMPLIFIED button override for testing - UPDATED FOR EXACT HTML STRUCTURE
+            function overridePricingButtons() {
+              if (window.dishupButtonsProcessed) {
+                console.log('🧪 Buttons already processed, skipping');
+                return;
+              }
+
+              // Only run on exact dishup.uk/Pricing page
+              if (!window.location.href.includes('dishup.uk/Pricing')) {
+                console.log('🧪 Not on dishup.uk/Pricing page, skipping');
+                return;
+              }
+
+              console.log('🧪 TESTING: Finding subscription buttons using precise HTML structure');
+
+              // Find all pricing cards using the exact class structure from HTML
+              const pricingCards = document.querySelectorAll('.rounded-lg.text-card-foreground.shadow-sm[data-dynamic-content="true"]');
+              console.log('🧪 Found', pricingCards.length, 'pricing cards');
+
+              let buttonsOverridden = 0;
+
+              pricingCards.forEach((card, cardIndex) => {
+                // Get the card title to determine subscription type
+                const titleElement = card.querySelector('h3.tracking-tight.text-2xl.font-bold');
+                const priceElement = card.querySelector('.text-5xl.font-bold');
+                const buttonElement = card.querySelector('button');
+
+                if (titleElement && priceElement && buttonElement) {
+                  const title = titleElement.textContent || '';
+                  const price = priceElement.textContent || '';
+                  const buttonText = buttonElement.textContent || '';
+
+                  console.log('🧪 Card', cardIndex, '- Title:', title);
+                  console.log('🧪 Card', cardIndex, '- Price:', price);
+                  console.log('🧪 Card', cardIndex, '- Button:', buttonText.substring(0, 30));
+
+                  // Precise detection based on exact HTML content
+                  const isMonthly = title.includes('DishUP! Premium - Monthly') && price.includes('£2.99');
+                  const isYearly = title.includes('DishUP! Premium - Yearly') && price.includes('£29.00');
+
+                  console.log('🧪 Card', cardIndex, '- Monthly:', isMonthly, 'Yearly:', isYearly);
+
+                  if ((isMonthly || isYearly) && buttonText.includes('Start 7-Day Free Trial')) {
+                    // Override the button click
+                    buttonElement.addEventListener('click', function(e) {
+                      e.preventDefault();
+                      e.stopPropagation();
+
+                      if (isMonthly) {
+                        console.log('🧪 MONTHLY button clicked! (monthly_premium)');
+                        purchaseMonthlySubscription();
+                      } else if (isYearly) {
+                        console.log('🧪 YEARLY button clicked! (yearly_premium)');
+                        purchaseYearlySubscription();
+                      }
+                    }, { capture: true });
+
+                    buttonsOverridden++;
+                    console.log('🧪 Successfully overridden', isMonthly ? 'MONTHLY' : 'YEARLY', 'button');
+                  }
+                }
+              });
+
+              window.dishupButtonsProcessed = true;
+              console.log('🧪 TESTING: Total buttons overridden:', buttonsOverridden);
+            }
   
   // Run immediately for testing
   if (!window.dishupIAPInitialized) {

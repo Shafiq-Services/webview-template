@@ -11,12 +11,7 @@ class IAPService {
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   late StreamSubscription<List<PurchaseDetails>> _subscription;
   
-  // Your product IDs from Google Play Console
-  static const String monthlyPremiumId = 'monthly_premium';
-  static const String yearlyPremiumId = 'yearly-premium';
-  
-  // Note: Based on console logs, both products are showing as 'monthly_premium'
-  // This suggests a mismatch in Google Play Console product IDs
+  // Note: Product IDs are now managed by SubscriptionController to avoid duplication
   
   // Available products
   List<ProductDetails> _products = [];
@@ -38,7 +33,7 @@ class IAPService {
   Function(String message)? onPurchaseSuccess;
 
   /// Initialize the IAP service
-  Future<bool> initialize() async {
+  Future<bool> initialize({Set<String>? productIds}) async {
     if (kDebugMode) print('🏪 IAP Service: Starting initialization...');
     
     try {
@@ -64,7 +59,11 @@ class IAPService {
 
       // Load products
       if (kDebugMode) print('🏪 IAP Service: Loading products...');
-      await _loadProducts();
+      if (productIds != null && productIds.isNotEmpty) {
+        await _loadProducts(productIds);
+      } else {
+        if (kDebugMode) print('⚠️ IAP Service: No product IDs provided, skipping product loading');
+      }
       
       // Check for existing subscriptions
       if (kDebugMode) print('🏪 IAP Service: Restoring purchases...');
@@ -79,9 +78,8 @@ class IAPService {
   }
 
   /// Load available products from the store
-  Future<void> _loadProducts() async {
+  Future<void> _loadProducts(Set<String> productIds) async {
     try {
-      const Set<String> productIds = {monthlyPremiumId, yearlyPremiumId};
       final ProductDetailsResponse response = await _inAppPurchase.queryProductDetails(productIds);
       
       if (response.error != null) {
@@ -226,11 +224,14 @@ class IAPService {
     _isSubscriptionActive = true;
     _activeSubscriptionId = productId;
     
-    // Set expiry date based on subscription type
-    if (productId == monthlyPremiumId) {
+    // Set expiry date based on subscription type (generic approach)
+    if (productId.contains('monthly')) {
       _subscriptionExpiry = DateTime.now().add(const Duration(days: 30));
-    } else if (productId == yearlyPremiumId) {
+    } else if (productId.contains('yearly') || productId.contains('year')) {
       _subscriptionExpiry = DateTime.now().add(const Duration(days: 365));
+    } else {
+      // Default to monthly if type cannot be determined
+      _subscriptionExpiry = DateTime.now().add(const Duration(days: 30));
     }
     
     // Notify listeners
