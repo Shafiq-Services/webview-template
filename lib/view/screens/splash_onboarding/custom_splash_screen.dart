@@ -16,21 +16,21 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      bool isFirstTime = prefs.getBool('isFirstTime') ?? true;
-      Timer(
-        Duration(milliseconds: 2500),
-        () => Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) {
-              return isFirstTime ? const OnboardingScreen() : HomeScreen();
-            },
-          ),
-        ),
-      );
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+    //   SharedPreferences prefs = await SharedPreferences.getInstance();
+    //   bool isFirstTime = prefs.getBool('isFirstTime') ?? true;
+    //   Timer(
+    //     Duration(milliseconds: 2500),
+    //     () => Navigator.pushReplacement(
+    //       context,
+    //       MaterialPageRoute(
+    //         builder: (context) {
+    //           return isFirstTime ? const OnboardingScreen() : HomeScreen();
+    //         },
+    //       ),
+    //     ),
+    //   );
+    // });
 
     super.initState();
   }
