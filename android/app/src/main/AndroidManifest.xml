@@ -16,7 +16,7 @@
     <uses-permission android:name="com.android.vending.BILLING" />
 
     <application
-        android:label="Breeder Exchange"
+        android:label="Signal 87"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

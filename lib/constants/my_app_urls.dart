@@ -1,15 +1,15 @@
 class Changes {
   // main website url
-  static String mainUrl = 'https://app.breederexchange.com/';
+  static String mainUrl = 'https://www.signal87.ai/';
 
   // if app start with this navigate else block or opens in external
-  static String startPointUrl = 'https://app.breederexchange.com/';
+  static String startPointUrl = 'https://app.signal87.ai/';
 
   // Title at the Material App
-  static String AppTitle = 'Breeder Exchange';
+  static String AppTitle = 'Signal 87';
 
   // android media store folder name
-  static String androidMediaStoreFolderName = 'Breeder Exchange';
+  static String androidMediaStoreFolderName = 'Signal 87';
   //<-------------------------------------------------------->
   //one signal
   //static String oneSignalAppId = 'd7d44267-c189-4acf-bcff-bedfe809bab2';
@@ -17,8 +17,8 @@ class Changes {
   //<-------------------------------------------------------->
 
   //1-  flutter pub global activate rename  //already activated just in case
-  // rename setBundleId --targets ios,android --value "com.sha.breederexchange"
-  // rename setAppName --targets ios,android --value "Breeder Exchange"
+  // rename setBundleId --targets ios,android --value "com.sha.signal87"
+  // rename setAppName --targets ios,android --value "Signal 87"
   //<-------------------------------------------------------->
 
   // change app icon
