@@ -46,6 +46,20 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	
+	<!-- OneSignal Configuration -->
+	<key>OneSignalAppId</key>
+	<string>3c62a23f-1e60-4f0c-a7da-a56bf8fd8728</string>
+	
+	<!-- Push Notification Usage Description -->
+	<key>NSUserNotificationUsageDescription</key>
+	<string>This app uses push notifications to keep you updated with important information and updates.</string>
+	
+	<!-- Background Modes for Push Notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	
 	<!-- iOS Permissions for WebView App -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs location access to show your position on the map and provide location-based services.</string>
@@ -67,7 +81,21 @@
 		<true/>
 		<key>NSExceptionDomains</key>
 		<dict>
-			<!-- Add specific domains if you want to be more restrictive -->
+			<!-- OneSignal Domain Exception -->
+			<key>onesignal.com</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.0</string>
+			</dict>
+			<key>api.onesignal.com</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.0</string>
+			</dict>
 		</dict>
 	</dict>
 	

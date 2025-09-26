@@ -23,7 +23,7 @@ alwaysApply: false
   - Main URL: `[YOUR_WEBSITE_URL]`
   - App title: `[YOUR_APP_NAME]`
   - Media store folder name
-  - OneSignal setup (commented out)
+  - OneSignal App ID: `3c62a23f-1e60-4f0c-a7da-a56bf8fd8728`
 
 ### `/lib/controllers/`
 - **`error_handle.dart`**: Error handling for WebView
@@ -44,14 +44,19 @@ alwaysApply: false
   - Local storage of subscription status
   - Product loading and management
 - **`notification_service.dart`**: Local notification storage using SharedPreferences
-- **`one_signal_notification.dart`**: OneSignal integration (commented out)
+- **`one_signal_notification.dart`**: **[ONESIGNAL PUSH NOTIFICATIONS]**
+  - Initialize OneSignal with error handling & non-blocking setup
+  - Foreground/background/terminated state notification handling
+  - Local notification storage integration
+  - Permission management with delayed request
+  - User tagging and segmentation support
 
 ### `/lib/models/`
 - **`notification_model.dart`**: Notification data structure with JSON serialization
 
 ### `/lib/utils/`
 - **`internet_connectivity.dart`**: Network connectivity checking
-- **`permissions.dart`**: Permission handling (phone, camera, storage, etc.)
+- **`permissions.dart`**: Permission handling (phone, camera, storage, OneSignal notifications)
 
 ### `/lib/view/`
 
@@ -60,7 +65,7 @@ alwaysApply: false
 - **`no_internet_error.dart`**: Specific no-internet error screen
 
 #### `/screens/splash_onboarding/`
-- **`custom_splash_screen.dart`**: App splash with 2.5s delay
+- **`custom_splash_screen.dart`**: App splash with 2.5s delay + OneSignal permission request
 - **`onboarding_screen.dart`**: 3-page onboarding flow (first-time users)
 
 #### `/screens/others_screens/`
@@ -126,14 +131,23 @@ alwaysApply: false
 - Special schemes (`tel:`, `mailto:`) → Launch native apps
 - Customizable domain whitelist for your specific needs
 
-### 3. **Notification System**
-**Location**: `lib/services/notification_service.dart` + `lib/models/notification_model.dart`
+### 3. **Push Notification System (OneSignal)**
+**Location**: `lib/services/one_signal_notification.dart` + `lib/services/notification_service.dart`
 
 **Features**:
-- Local notification storage via SharedPreferences
-- JSON serialization/deserialization
-- Notification history with timestamps
-- Clear all functionality
+- **OneSignal Integration**: Full foreground/background/terminated state support
+- **Permission Management**: Smart delayed permission request (2s delay on splash)
+- **Local Storage**: All notifications saved to SharedPreferences via `NotificationService`
+- **Error Handling**: Non-blocking initialization, graceful failure handling
+- **User Segmentation**: Support for custom tags and user targeting
+- **Store-Ready**: Configured for App Store/Play Store approval
+
+**Flow**:
+1. OneSignal initializes on app startup (non-blocking)
+2. Permission requested after 2s delay on splash screen
+3. Notifications received in all app states (foreground/background/terminated)
+4. All notifications automatically saved locally for notification history
+5. Click handling with custom navigation support
 
 ### 4. **Error Handling & Connectivity**
 **Location**: `lib/controllers/error_handle.dart` + `lib/utils/internet_connectivity.dart`
@@ -207,6 +221,13 @@ WebView Download Request
 - Error handling working
 - Permissions working
 
+### **OneSignal Push Notifications**: ✅ Production Ready
+- Foreground/background/terminated state support implemented
+- Permission handling with 2s delay on splash screen
+- Local notification storage working
+- Android/iOS platform configurations complete
+- Store-upload friendly with proper error handling
+
 ### **App Flow Status**: ✅ Complete
 - Splash → Onboarding → WebView working
 - Navigation and back button handling working
@@ -242,6 +263,7 @@ WebView Download Request
 # Core
 flutter_inappwebview: ^6.1.5
 in_app_purchase: ^3.1.13
+onesignal_flutter: ^5.2.9
 
 # Utilities  
 connectivity_plus: ^6.1.0

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_demo/constants/my_app_colors.dart';
 import 'package:webview_demo/constants/my_app_urls.dart';
+import 'package:webview_demo/utils/permissions.dart';
 import 'package:webview_demo/view/screens/splash_onboarding/onboarding_screen.dart';
 import 'package:webview_demo/view/screens/webview_screens/home_screen.dart';
 
@@ -19,6 +20,11 @@ class _SplashScreenState extends State<SplashScreen> {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       bool isFirstTime = prefs.getBool('isFirstTime') ?? true;
+      
+      // Request notification permission with delay during splash screen
+      // This runs asynchronously and doesn't block the splash screen navigation
+      _requestNotificationPermission();
+      
       Timer(
         Duration(milliseconds: 2500),
         () => Navigator.pushReplacement(
@@ -33,6 +39,17 @@ class _SplashScreenState extends State<SplashScreen> {
     });
 
     super.initState();
+  }
+  
+  /// Request notification permission with delay (non-blocking)
+  void _requestNotificationPermission() async {
+    try {
+      // Request notification permission with a 2-second delay
+      await requestNotificationPermissionWithDelay(delaySeconds: 2);
+    } catch (e) {
+      // Handle error silently to avoid disrupting app flow
+      print('Error requesting notification permission: $e');
+    }
   }
 
   @override

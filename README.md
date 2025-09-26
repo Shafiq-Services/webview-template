@@ -6,7 +6,7 @@ Production-ready Flutter WebView template that wraps any website with native mob
 
 - 🌐 **WebView Integration** - OAuth, downloads, geolocation, pull-to-refresh
 - 💰 **In-App Purchases** - Auto-intercepts web payment buttons, Google Play/App Store
-- 🎨 **User Experience** - Splash screen, onboarding, error handling, notifications
+- 🔔 **Push Notifications** - OneSignal integration with foreground/background/terminated support
 - ⚡ **Performance** - Hybrid composition, service workers, smart URL routing
 
 ## 🚀 Quick Setup
@@ -18,16 +18,15 @@ static String mainUrl = '[YOUR_WEBSITE_URL]';
 static String AppTitle = '[YOUR_APP_NAME]';
 ```
 
-### 2. **Setup In-App Purchases** (Optional)
+### 2. **Setup OneSignal** (Optional)
 ```dart
-// lib/controllers/subscription_controller.dart
-'monthly': SubscriptionConfig(productId: '[YOUR_MONTHLY_PRODUCT_ID]'),
-'yearly': SubscriptionConfig(productId: '[YOUR_YEARLY_PRODUCT_ID]'),
+// lib/constants/my_app_urls.dart
+static String oneSignalAppId = '[YOUR_ONESIGNAL_APP_ID]';
 ```
 
-### 3. **Customize JavaScript** (For IAP)
-- Update button detection in `getPricingPageJavaScript()`
-- Modify HTML selectors for your payment page
+### 3. **Configure Platforms**
+- Android: Update OneSignal metadata in `AndroidManifest.xml`
+- iOS: Update `Info.plist` with background modes and permissions
 
 ### 4. **Run**
 ```bash
@@ -43,8 +42,8 @@ Detailed docs: `.cursor/rules/web-view.mdc`
 
 ## 🔧 Main Dependencies
 - `flutter_inappwebview` - WebView functionality
+- `onesignal_flutter` - Push notifications
 - `in_app_purchase` - IAP integration
-- `connectivity_plus` - Network checking
 - `permission_handler` - Device permissions
 
 ---

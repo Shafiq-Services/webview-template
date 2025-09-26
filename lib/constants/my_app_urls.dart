@@ -12,12 +12,12 @@ class Changes {
   static String androidMediaStoreFolderName = 'Signal 87';
   //<-------------------------------------------------------->
   //one signal
-  //static String oneSignalAppId = 'd7d44267-c189-4acf-bcff-bedfe809bab2';
+  static String oneSignalAppId = '3c62a23f-1e60-4f0c-a7da-a56bf8fd8728';
   // remove json file if you donot have one signal setup
   //<-------------------------------------------------------->
 
   //1-  flutter pub global activate rename  //already activated just in case
-  // rename setBundleId --targets ios,android --value "com.sha.signal87"
+  // rename setBundleId --targets ios,android --value "com.sha.appname"
   // rename setAppName --targets ios,android --value "Signal 87"
   //<-------------------------------------------------------->
 

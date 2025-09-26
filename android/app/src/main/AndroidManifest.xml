@@ -14,6 +14,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="com.android.vending.BILLING" />
+    
+    <!-- OneSignal Push Notification Permissions -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:label="Signal 87"
@@ -46,6 +51,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            
+        <!-- OneSignal Configuration -->
+        <meta-data 
+            android:name="onesignal_app_id" 
+            android:value="3c62a23f-1e60-4f0c-a7da-a56bf8fd8728" />
+        <meta-data 
+            android:name="com.onesignal.NotificationAccentColor.DEFAULT" 
+            android:value="FF1B145E" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
