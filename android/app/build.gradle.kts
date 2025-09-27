@@ -29,19 +29,11 @@ android {
             versionNameSuffix = "-debug"
             isDebuggable = true
         }
-        // keep release definition minimal but unused
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = null
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-    }
-}
-
-// disable all release variants so only debug builds exist
-androidComponents {
-    beforeVariants(selector().withBuildType("release")) { variant ->
-        variant.enable = false
     }
 }
 
