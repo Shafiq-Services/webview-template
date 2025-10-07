@@ -1,0 +1,320 @@
+---
+description: This is about the project structure and details, but first read "web-view-rules.mdc"
+alwaysApply: false
+---
+# Flutter WebView Template - Complete Project Documentation
+
+## 🏗️ Project Overview
+**Flutter WebView Template** is a production-ready Flutter application that wraps any website with native mobile features including In-App Purchases (IAP), notifications, file downloads, and enhanced user experience. This template can be easily adapted for any web project.
+
+## 📱 App Architecture & Flow
+
+### Core Flow
+1. **Splash Screen** → **Onboarding** (first time) → **WebView Home Screen**
+2. **WebView** loads your configured website with native enhancements
+3. **IAP Integration** overrides web payment buttons on specified pages
+4. **Native features** handle downloads, notifications, permissions
+
+## 📂 Folder Structure & Components
+
+### `/lib/constants/`
+- **`my_app_colors.dart`**: App color scheme (primary: `#fbf8f0`, secondary: black, onboarding: `#ff8a2d`)
+- **`my_app_urls.dart`**: Configuration constants
+  - Main URL: `[YOUR_WEBSITE_URL]`
+  - App title: `[YOUR_APP_NAME]`
+  - Media store folder name
+  - OneSignal App ID: `3c62a23f-1e60-4f0c-a7da-a56bf8fd8728`
+
+### `/lib/controllers/`
+- **`error_handle.dart`**: Error handling for WebView
+  - `ERR_INTERNET_DISCONNECTED` → No Internet Screen
+  - Other errors → Custom Error Screen
+- **`initialize_web_view_features.dart`**: WebView debugging & service worker setup
+- **`initialize_app.dart`**: App initialization orchestrator
+- **`subscription_controller.dart`**: **[CORE IAP LOGIC]**
+  - Manages In-App Purchase flow
+  - JavaScript injection for payment pages
+  - Product configuration (easily customizable)
+  - WebView-to-Native communication bridge
+
+### `/lib/services/`
+- **`iap_service.dart`**: **[CORE IAP SERVICE]**
+  - Google Play/App Store integration
+  - Purchase handling, verification, restoration
+  - Local storage of subscription status
+  - Product loading and management
+- **`notification_service.dart`**: Local notification storage using SharedPreferences
+- **`one_signal_notification.dart`**: **[ONESIGNAL PUSH NOTIFICATIONS]**
+  - Initialize OneSignal with error handling & non-blocking setup
+  - Foreground/background/terminated state notification handling
+  - Local notification storage integration
+  - Permission management with delayed request
+  - User tagging and segmentation support
+
+### `/lib/models/`
+- **`notification_model.dart`**: Notification data structure with JSON serialization
+
+### `/lib/utils/`
+- **`internet_connectivity.dart`**: Network connectivity checking
+- **`permissions.dart`**: Permission handling (phone, camera, storage, OneSignal notifications)
+
+### `/lib/view/`
+
+#### `/components/`
+- **`custom_error.dart`**: Generic error screen with retry functionality
+- **`no_internet_error.dart`**: Specific no-internet error screen
+
+#### `/screens/splash_onboarding/`
+- **`custom_splash_screen.dart`**: App splash with 2.5s delay + OneSignal permission request
+- **`onboarding_screen.dart`**: 3-page onboarding flow (first-time users)
+
+#### `/screens/others_screens/`
+- **`about_us.dart`**: Static about page
+- **`contact_us.dart`**: Contact form with email integration
+- **`notification_screen.dart`**: Display saved notifications
+
+#### `/screens/webview_screens/`
+- **`home_screen.dart`**: **[MAIN WEBVIEW SCREEN]**
+  - Primary app interface
+  - WebView configuration and handlers
+  - IAP JavaScript injection
+  - File download handling
+  - Permission management
+  - URL routing logic
+
+#### `/screens/`
+- **`bottom_navigation_screen.dart`**: Navigation wrapper (currently unused)
+
+## 🔑 Key Features Implemented
+
+### 1. **In-App Purchases (IAP) System**
+**Location**: `lib/controllers/subscription_controller.dart` + `lib/services/iap_service.dart`
+
+**Flow**:
+1. User visits your configured payment page
+2. JavaScript detects payment elements and overrides specified buttons
+3. Button clicks trigger Flutter IAP instead of web payment
+4. Native subscription sheets open (Google Play/App Store)
+5. Purchase success/failure shown via snackbars
+
+**Configuration** (Centralized in `subscription_controller.dart`):
+```dart
+// Product IDs - Customize for your app
+'monthly': '[YOUR_MONTHLY_PRODUCT_ID]'
+'yearly': '[YOUR_YEARLY_PRODUCT_ID]'
+
+// Target pages - Configure your payment page URLs
+// Button detection - Customize button text patterns
+// Card detection - Adapt to your HTML structure
+```
+
+**JavaScript Injection**:
+- Precise HTML structure targeting (customizable for your website)
+- Button event override with `preventDefault()`
+- Flutter-JavaScript bridge via `addJavaScriptHandler`
+- Easily adaptable to different website structures
+
+### 2. **WebView Enhancements**
+**Location**: `lib/view/screens/webview_screens/home_screen.dart`
+
+**Features**:
+- **OAuth Support**: Google login flows stay in WebView
+- **File Downloads**: Native download handling with MediaStore (Android)
+- **Geolocation**: Permission handling for location services
+- **Pull-to-Refresh**: Native refresh functionality
+- **Error Handling**: Network errors redirect to custom screens
+- **Cookie Management**: Maintains session across navigation
+
+**URL Routing Logic**:
+- OAuth domains (configurable) → Stay in WebView
+- External links → Open in external browser
+- Special schemes (`tel:`, `mailto:`) → Launch native apps
+- Customizable domain whitelist for your specific needs
+
+### 3. **Push Notification System (OneSignal)**
+**Location**: `lib/services/one_signal_notification.dart` + `lib/services/notification_service.dart`
+
+**Features**:
+- **OneSignal Integration**: Full foreground/background/terminated state support
+- **Permission Management**: Smart delayed permission request (2s delay on splash)
+- **Local Storage**: All notifications saved to SharedPreferences via `NotificationService`
+- **Error Handling**: Non-blocking initialization, graceful failure handling
+- **User Segmentation**: Support for custom tags and user targeting
+- **Store-Ready**: Configured for App Store/Play Store approval
+
+**Flow**:
+1. OneSignal initializes on app startup (non-blocking)
+2. Permission requested after 2s delay on splash screen
+3. Notifications received in all app states (foreground/background/terminated)
+4. All notifications automatically saved locally for notification history
+5. Click handling with custom navigation support
+
+### 4. **Error Handling & Connectivity**
+**Location**: `lib/controllers/error_handle.dart` + `lib/utils/internet_connectivity.dart`
+
+**Features**:
+- Network connectivity monitoring
+- Custom error screens for different error types
+- Retry mechanisms with internet checking
+- Graceful fallbacks
+
+### 5. **Onboarding & Splash**
+**Location**: `lib/view/screens/splash_onboarding/`
+
+**Features**:
+- First-time user detection via SharedPreferences
+- 3-page image-based onboarding
+- Skip functionality
+- Smooth transitions
+
+## 🔧 Technical Implementation Details
+
+### **IAP Architecture**
+```
+WebView (Your Payment Page) 
+    ↓ JavaScript Detection
+    ↓ Button Override
+    ↓ Flutter Handler Call
+SubscriptionController
+    ↓ Product Validation
+    ↓ Purchase Initiation
+IAPService
+    ↓ Google Play/App Store
+    ↓ Purchase Processing
+    ↓ Local Storage
+User Feedback (SnackBar)
+```
+
+### **WebView Configuration**
+```dart
+// Key settings enabled:
+javaScriptEnabled: true
+supportMultipleWindows: true  // Popups
+mixedContentMode: MIXED_CONTENT_ALWAYS_ALLOW
+sharedCookiesEnabled: true
+domStorageEnabled: true
+useHybridComposition: true  // Performance
+```
+
+### **File Download Flow**
+```
+WebView Download Request
+    ↓ Cookie Extraction
+    ↓ Header Preparation
+    ↓ Dio Download to Temp
+    ↓ HTML Content Validation
+    ↓ MediaStore Save (Android) / App Documents (iOS)
+    ↓ User Notification
+```
+
+## 🎯 Current State & Testing
+
+### **IAP Status**: ✅ Implemented & Simplified for Testing
+- Product IDs: Configurable for your app
+- Target: Customizable payment page URLs
+- Feedback: SnackBars for payment success/failure
+- No post-purchase web refresh or API calls (removed for testing)
+
+### **WebView Status**: ✅ Fully Functional
+- OAuth flows working (configurable domains)
+- File downloads working
+- Error handling working
+- Permissions working
+
+### **OneSignal Push Notifications**: ✅ Production Ready
+- Foreground/background/terminated state support implemented
+- Permission handling with 2s delay on splash screen
+- Local notification storage working
+- Android/iOS platform configurations complete
+- Store-upload friendly with proper error handling
+
+### **App Flow Status**: ✅ Complete
+- Splash → Onboarding → WebView working
+- Navigation and back button handling working
+
+## 🔄 Maintenance & Updates
+
+### **When Adding New Features**:
+1. Update this documentation file
+2. Follow existing architecture patterns
+3. Maintain centralized configuration approach
+4. Add appropriate error handling
+
+### **IAP Configuration Changes**:
+- Modify `SubscriptionController.subscriptionPlans` map
+- Update product IDs in Google Play Console to match
+- Configure target URLs for your payment pages
+- Customize button detection patterns for your website
+
+### **WebView URL Changes**:
+- Update `Changes.mainUrl` in `my_app_urls.dart`
+- Update OAuth domain whitelist for your authentication needs
+- Test download functionality on new domains
+- Customize URL routing logic for your specific requirements
+
+### **Common Debugging**:
+- Enable WebView debugging: `setWebContentsDebuggingEnabled(true)`
+- Check console logs for JavaScript errors
+- Verify product IDs match Google Play Console exactly
+- Test IAP on physical devices only (not emulators)
+
+## 📋 Dependencies Used
+```yaml
+# Core
+flutter_inappwebview: ^6.1.5
+in_app_purchase: ^3.1.13
+onesignal_flutter: ^5.2.9
+
+# Utilities  
+connectivity_plus: ^6.1.0
+shared_preferences: ^2.3.3
+permission_handler: ^11.3.1
+geolocator: ^13.0.2
+
+# UI/Media
+media_store_plus: ^0.1.3
+url_launcher: ^6.3.1
+dio: ^5.7.0
+path_provider: ^2.1.5
+```
+
+## 🚀 **Quick Start Guide for New Projects**
+
+### **1. Basic Configuration**
+```dart
+// In lib/constants/my_app_urls.dart
+static String mainUrl = '[YOUR_WEBSITE_URL]';
+static String AppTitle = '[YOUR_APP_NAME]';
+static String androidMediaStoreFolderName = '[YOUR_APP_NAME]';
+```
+
+### **2. IAP Setup**
+```dart
+// In lib/controllers/subscription_controller.dart
+static const Map<String, SubscriptionConfig> subscriptionPlans = {
+  'monthly': SubscriptionConfig(
+    productId: '[YOUR_MONTHLY_PRODUCT_ID]',
+    displayName: '[YOUR_MONTHLY_PLAN_NAME]',
+    // ... customize other fields
+  ),
+  'yearly': SubscriptionConfig(
+    productId: '[YOUR_YEARLY_PRODUCT_ID]',
+    displayName: '[YOUR_YEARLY_PLAN_NAME]',
+    // ... customize other fields
+  ),
+};
+```
+
+### **3. JavaScript Injection Customization**
+- Update button detection patterns in `getPricingPageJavaScript()`
+- Modify HTML selectors for your website structure
+- Configure target page URLs
+
+### **4. OAuth Domain Configuration**
+- Update domain whitelist in `home_screen.dart`
+- Configure for your authentication providers
+
+---
+**Last Updated**: Current session - Converted to general WebView template
+**Template Status**: Ready for any web project adaptation
+**Next Steps**: Customize configuration for your specific project

@@ -1,0 +1,26 @@
+---
+alwaysApply: true
+---
+# WebView Project Rules
+
+## Order
+1. Always read **this file first**.  
+2. Then process `web-view.mdc`.  
+3. After changes, update **both** `web-view.mdc` and `README.md`.
+
+## For `web-view.mdc`
+- Keep the **same structure & headings** as current file.  
+- Update only sections affected by actual code/config changes.  
+- Preserve emojis, placeholders (`[YOUR_WEBSITE_URL]`, IDs), and labels like **[CORE IAP LOGIC]**.  
+- No extra prose or re-ordering.
+
+## For `README.md`
+Always rewrite in **4 compact sections**:
+1. **Brief Intro** – one line  
+2. **Key Features** – 4 bullets only  
+3. **Quick Setup** – 4 simple steps with short snippets  
+4. **Essential Info** – Platforms, docs link, main dependencies  
+
+## Rule of Thumb
+- **No unnecessary edits**.  
+- **Synchronize** `web-view.mdc` (detailed) and `README.md` (compact) every time.
