@@ -356,29 +356,30 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-      //  floatingActionButton: _isPageLoaded
-        //             ? AnimatedOpacity(
-        //           opacity: 1.0,
-        //           duration: const Duration(milliseconds: 800),
-        //           child: FloatingActionButton(
-        //             backgroundColor: MyColors.kmainColor,
-        //             child: const Icon(Icons.share, color: Colors.black),
-        //             onPressed: () async {
-        //               final currentUrl = await _webViewController.getUrl();
-        //               if (currentUrl != null) {
-        //                 await Share.share(currentUrl.toString(),
-        //                     subject: "Check out this page!");
-        //               } else {
-        //                 ScaffoldMessenger.of(context).showSnackBar(
-        //                   const SnackBar(content: Text("No webpage loaded to share")),
-        //                 );
-        //               }
-        //             },
-        //           ),
-        //
-        //         )
-        //             : null,
-        //         floatingActionButtonLocation: FloatingActionButtonLocation.startFloat, // <-- move FAB to left
+        floatingActionButton: _isPageLoaded
+            ? AnimatedOpacity(
+          opacity: 1.0,
+          duration: const Duration(milliseconds: 800),
+          child: FloatingActionButton(
+            backgroundColor: MyColors.kmainColor,
+            child: const Icon(Icons.share, color: Colors.black),
+            onPressed: () async {
+              final currentUrl = await _webViewController.getUrl();
+              if (currentUrl != null) {
+                await Share.share(currentUrl.toString(),
+                    subject: "Check out this page!");
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("No webpage loaded to share")),
+                );
+              }
+            },
+          ),
+
+        )
+            : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat, // <-- move FAB to left
+
       ),
     );
   }
