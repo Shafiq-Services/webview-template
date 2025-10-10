@@ -1,4 +1,4 @@
-package com.sha.galaxy2000
+package com.sha.innosphere
 
 import io.flutter.embedding.android.FlutterActivity
 
