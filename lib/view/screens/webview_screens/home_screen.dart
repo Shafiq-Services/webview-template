@@ -188,11 +188,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Initialize OneSignal when user reaches dashboard
                   // OneSignalNotification.initialize();
                 }
-
-                // Only inject on exact dishup.uk/Pricing URL
-                if (url.toString() == 'https://dishup.uk/Pricing') {
+                if (url.toString().toLowerCase().contains('/subscription')) {
                   _injectIAPJavaScript(controller, url);
                 }
+
               },
               onConsoleMessage: (controller, consoleMessage) {
                 print("JS Console: ${consoleMessage.message}");
@@ -485,37 +484,121 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
+    controller.addJavaScriptHandler(
+      handlerName: 'showCurrencySnackbar',
+      callback: (args) async {
+        if (args.length < 2) return;
+        final region = args[0];
+        final priceText = args[1];
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$region • $priceText per month',
+              style: const TextStyle(fontSize: 16),
+            ),
+            backgroundColor: Colors.blueAccent.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      },
+    );
+
+
     if (kDebugMode) print('✅ IAP: JavaScript handlers set up successfully');
   }
 
   /// Inject IAP JavaScript ONLY on dishup.uk/Pricing - SIMPLIFIED FOR TESTING
-  Future<void> _injectIAPJavaScript(InAppWebViewController controller, WebUri? url) async {
+  Future<void> _injectIAPJavaScript(
+      InAppWebViewController controller,
+      WebUri? url,
+      ) async {
     if (url == null) return;
+    final urlString = url.toString().toLowerCase();
 
-    final String urlString = url.toString();
+    // ✅ Only for the Subscription page
+    if (!urlString.contains('/subscription')) return;
 
-    // ONLY inject on exact dishup.uk/Pricing page
-    final bool isExactPricingPage = urlString == 'https://dishup.uk/Pricing';
+    print('🧩 Injecting JS for Subscription page...');
 
-    if (kDebugMode) {
-      print('🧪 TESTING: Current URL: $urlString');
-      print('🧪 TESTING: Is exact pricing page: $isExactPricingPage');
+    const jsCode = """
+(function() {
+  console.log('🔹 InnoSphere Subscription interceptor loaded...');
+
+  // Detect and disable the trial button
+  function handleTrialButton() {
+    const button = Array.from(document.querySelectorAll('button'))
+      .find(b => b.textContent.trim().toLowerCase().includes('start 3-day free trial'));
+
+    if (!button) {
+      console.log('⏳ Waiting for trial button...');
+      setTimeout(handleTrialButton, 1500);
+      return;
     }
 
-    if (isExactPricingPage) {
-      if (kDebugMode) print('🧪 TESTING: Injecting simplified JavaScript');
+    if (button._flutterAttached) return;
+    button._flutterAttached = true;
 
-      try {
-        // Wait for page to load
-        await Future.delayed(const Duration(milliseconds: 1500));
+    console.log('✅ Trial button found. Disabling default Stripe behavior...');
 
-        final String jsCode = _subscriptionController.getPricingPageJavaScript();
-        await controller.evaluateJavascript(source: jsCode);
+    // Disable all default handlers
+    button.onclick = null;
+    button.removeAttribute('href');
 
-        if (kDebugMode) print('🧪 TESTING: JavaScript injection completed');
-      } catch (e) {
-        if (kDebugMode) print('🧪 TESTING: JavaScript injection error: $e');
+    // Intercept the click
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      console.log('🧩 Click intercepted — no Stripe alert will show.');
+
+      // Detect price & region
+      const priceEl = document.querySelector('span.text-6xl.font-bold.text-white');
+      const priceText = priceEl ? priceEl.textContent.trim() : '';
+      let region = 'Unknown', flag = '';
+
+      if (priceText.includes('\$')) { region = 'United States'; flag = '🇺🇸'; }
+      else if (priceText.includes('₦')) { region = 'Nigeria'; flag = '🇳🇬'; }
+      else if (priceText.toLowerCase().includes('ksh')) { region = 'Kenya'; flag = '🇰🇪'; }
+      else if (priceText.startsWith('R')) { region = 'South Africa'; flag = '🇿🇦'; }
+
+      console.log('📢 Detected region:', region, 'Price:', priceText);
+
+      if (window.flutter_inappwebview) {
+        window.flutter_inappwebview.callHandler(
+          'showCurrencySnackbar',
+          flag + ' ' + region,
+          priceText
+        );
+      } else {
+        console.warn('⚠️ Flutter handler not available');
       }
+    }, true);
+
+    // Add visual cue
+    button.style.cursor = 'pointer';
+    button.style.opacity = '0.95';
+    button.title = 'Click to view your regional pricing';
+  }
+
+  // Observe DOM until button appears
+  const observer = new MutationObserver(() => handleTrialButton());
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Try immediately
+  handleTrialButton();
+})();
+  """;
+
+    try {
+      await controller.evaluateJavascript(source: jsCode);
+      print('✅ JS injected successfully on Subscription page');
+    } catch (e) {
+      print('❌ JS injection failed: $e');
     }
   }
+
 }
