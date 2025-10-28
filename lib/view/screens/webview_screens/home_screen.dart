@@ -16,9 +16,11 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../constants/my_app_colors.dart';
 import '../../../constants/my_app_urls.dart';
+import '../../../constants/web_interceptors_config.dart';
 import '../../../controllers/error_handle.dart';
 import '../../../controllers/subscription_controller.dart';
 import '../../../utils/internet_connectivity.dart';
+import '../../../services/web_element_interceptor_service.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -36,9 +38,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Subscription controller
   final SubscriptionController _subscriptionController = SubscriptionController();
+  
+  // Web element interceptor service
+  final WebElementInterceptorService _interceptorService = WebElementInterceptorService();
+  
   bool _isPageLoaded = false;
-  int _progress = 0;
-  bool _isLoading = false;
+  // ignore: unused_field
+  int _progress = 0; // Reserved for progress indicator feature
+  // ignore: unused_field
+  bool _isLoading = false; // Reserved for loading state feature
   Timer? _debounceTimer;
   @override
   void initState() {
@@ -71,12 +79,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Initialize subscription controller
       await _subscriptionController.initialize();
+      
+      // Setup web interceptors from config file
+      // To configure: Go to lib/constants/web_interceptors_config.dart
+      WebInterceptorsConfig.setupInterceptors(_interceptorService, context, _webViewController);
+      
+      // Setup handlers AFTER interceptors are registered (fixes timing issue)
+      _interceptorService.setupHandlers(_webViewController);
     });
   }
 
   @override
   void dispose() {
     _pullToRefreshController.dispose();
+    _interceptorService.dispose();
     super.dispose();
   }
 
@@ -110,9 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
               pullToRefreshController: _pullToRefreshController,
               onWebViewCreated: (controller) {
                 _webViewController = controller;
-
-                // Add JavaScript handlers for IAP
-                _setupIAPHandlers(controller);
+                // NOTE: setupHandlers will be called AFTER interceptors are registered
+                // in addPostFrameCallback to avoid timing issues
               },
               onLoadStart: (controller, url) {
                 _isLoading = true;
@@ -126,8 +141,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Don't set _isPageLoaded here
                 Changes.mainUrl = url?.toString() ?? '';
 
-                // Inject IAP JS if needed
-                await _injectIAPJavaScript(controller, url);
+                // Inject element interceptors for matching URLs
+                await _interceptorService.injectInterceptors(controller, url);
               },
 
 
@@ -158,16 +173,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   //   });
                   //}
                 });
-
-                // Try to inject JavaScript when page is almost loaded (only for exact dishup.uk/Pricing)
-                if (progress == 100) {
-                  Future.delayed(const Duration(milliseconds: 800), () async {
-                    final currentUrl = await controller.getUrl();
-                    if (currentUrl != null && currentUrl.toString() == 'https://dishup.uk/Pricing') {
-                      _injectIAPJavaScript(controller, currentUrl);
-                    }
-                  });
-                }
               },
               onReceivedError: (controller, request, error) {
                 if (kDebugMode) {
@@ -188,10 +193,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Initialize OneSignal when user reaches dashboard
                   // OneSignalNotification.initialize();
                 }
-                if (url.toString().toLowerCase().contains('/subscription')) {
-                  _injectIAPJavaScript(controller, url);
-                }
-
+                
+                // Inject element interceptors for matching URLs
+                _interceptorService.injectInterceptors(controller, url);
               },
               onConsoleMessage: (controller, consoleMessage) {
                 print("JS Console: ${consoleMessage.message}");
@@ -451,153 +455,6 @@ class _HomeScreenState extends State<HomeScreen> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       throw 'Could not launch $url';
-    }
-  }
-
-  /// Setup JavaScript handlers for IAP
-  void _setupIAPHandlers(InAppWebViewController controller) {
-    if (kDebugMode) print('🔧 IAP: Setting up JavaScript handlers...');
-
-    // Handler for monthly subscription purchase
-    controller.addJavaScriptHandler(
-      handlerName: 'purchaseMonthlySubscription',
-      callback: (args) async {
-        if (kDebugMode) {
-          print('🎯 IAP: Monthly subscription purchase requested from WebView');
-          print('🎯 IAP: Args received: $args');
-          print('🎯 IAP: Subscription controller initialized: ${_subscriptionController.isInitialized}');
-        }
-        await _subscriptionController.purchaseMonthlySubscription(context);
-      },
-    );
-
-    // Handler for yearly subscription purchase
-    controller.addJavaScriptHandler(
-      handlerName: 'purchaseYearlySubscription',
-      callback: (args) async {
-        if (kDebugMode) {
-          print('🎯 IAP: Yearly subscription purchase requested from WebView');
-          print('🎯 IAP: Args received: $args');
-          print('🎯 IAP: Subscription controller initialized: ${_subscriptionController.isInitialized}');
-        }
-        await _subscriptionController.purchaseYearlySubscription(context);
-      },
-    );
-
-    controller.addJavaScriptHandler(
-      handlerName: 'showCurrencySnackbar',
-      callback: (args) async {
-        if (args.length < 2) return;
-        final region = args[0];
-        final priceText = args[1];
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '$region • $priceText per month',
-              style: const TextStyle(fontSize: 16),
-            ),
-            backgroundColor: Colors.blueAccent.shade700,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      },
-    );
-
-
-    if (kDebugMode) print('✅ IAP: JavaScript handlers set up successfully');
-  }
-
-  /// Inject IAP JavaScript ONLY on dishup.uk/Pricing - SIMPLIFIED FOR TESTING
-  Future<void> _injectIAPJavaScript(
-      InAppWebViewController controller,
-      WebUri? url,
-      ) async {
-    if (url == null) return;
-    final urlString = url.toString().toLowerCase();
-
-    // ✅ Only for the Subscription page
-    if (!urlString.contains('/subscription')) return;
-
-    print('🧩 Injecting JS for Subscription page...');
-
-    const jsCode = """
-(function() {
-  console.log('🔹 InnoSphere Subscription interceptor loaded...');
-
-  // Detect and disable the trial button
-  function handleTrialButton() {
-    const button = Array.from(document.querySelectorAll('button'))
-      .find(b => b.textContent.trim().toLowerCase().includes('start 3-day free trial'));
-
-    if (!button) {
-      console.log('⏳ Waiting for trial button...');
-      setTimeout(handleTrialButton, 1500);
-      return;
-    }
-
-    if (button._flutterAttached) return;
-    button._flutterAttached = true;
-
-    console.log('✅ Trial button found. Disabling default Stripe behavior...');
-
-    // Disable all default handlers
-    button.onclick = null;
-    button.removeAttribute('href');
-
-    // Intercept the click
-    button.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      console.log('🧩 Click intercepted — no Stripe alert will show.');
-
-      // Detect price & region
-      const priceEl = document.querySelector('span.text-6xl.font-bold.text-white');
-      const priceText = priceEl ? priceEl.textContent.trim() : '';
-      let region = 'Unknown', flag = '';
-
-      if (priceText.includes('\$')) { region = 'United States'; flag = '🇺🇸'; }
-      else if (priceText.includes('₦')) { region = 'Nigeria'; flag = '🇳🇬'; }
-      else if (priceText.toLowerCase().includes('ksh')) { region = 'Kenya'; flag = '🇰🇪'; }
-      else if (priceText.startsWith('R')) { region = 'South Africa'; flag = '🇿🇦'; }
-
-      console.log('📢 Detected region:', region, 'Price:', priceText);
-
-      if (window.flutter_inappwebview) {
-        window.flutter_inappwebview.callHandler(
-          'showCurrencySnackbar',
-          flag + ' ' + region,
-          priceText
-        );
-      } else {
-        console.warn('⚠️ Flutter handler not available');
-      }
-    }, true);
-
-    // Add visual cue
-    button.style.cursor = 'pointer';
-    button.style.opacity = '0.95';
-    button.title = 'Click to view your regional pricing';
-  }
-
-  // Observe DOM until button appears
-  const observer = new MutationObserver(() => handleTrialButton());
-  observer.observe(document.body, { childList: true, subtree: true });
-
-  // Try immediately
-  handleTrialButton();
-})();
-  """;
-
-    try {
-      await controller.evaluateJavascript(source: jsCode);
-      print('✅ JS injected successfully on Subscription page');
-    } catch (e) {
-      print('❌ JS injection failed: $e');
     }
   }
 

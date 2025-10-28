@@ -1,3 +1,12 @@
+/// ════════════════════════════════════════════════════════════════════════════
+/// APP CONFIGURATION
+/// ════════════════════════════════════════════════════════════════════════════
+/// Configure your app's basic settings here.
+/// 
+/// For web element interceptions (button clicks, hide elements):
+/// See: lib/constants/web_interceptors_config.dart
+/// ════════════════════════════════════════════════════════════════════════════
+
 class Changes {
   // main website url
   static String mainUrl = 'https://galaxy2000ai-71288d7b.base44.app';

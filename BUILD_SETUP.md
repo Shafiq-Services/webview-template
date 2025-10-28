@@ -6,7 +6,9 @@ This template project is configured for easy generation of both **signed app bun
 
 ### For New Projects from Template
 
-1. **Configure App Details**: Update `lib/constants/my_app_urls.dart` with your app-specific information
+1. **Configure App Details**: 
+   - Update `lib/constants/my_app_urls.dart` with your app-specific information
+   - Update `lib/constants/web_interceptors_config.dart` to intercept web elements (optional)
 2. **Set up Signing** (for production): Follow the [Signing Setup](#signing-setup) section
 3. **Build**: Run one of the provided build scripts
 
@@ -90,7 +92,8 @@ your_project/
 │   ├── key.properties             # Your actual signing config (gitignored)
 │   └── keystores/                 # Store your keystores here (gitignored)
 ├── lib/constants/
-│   └── my_app_urls.dart           # App-specific configuration
+│   ├── my_app_urls.dart           # App URLs and settings
+│   └── web_interceptors_config.dart  # Web element interceptions (optional)
 ├── releases/                      # Generated builds appear here
 ├── build_releases.bat             # Windows build script
 ├── build_releases.ps1             # PowerShell build script
@@ -112,6 +115,10 @@ your_project/
      static String oneSignalAppId = 'your-onesignal-id';
      // ... other app-specific settings
    }
+   
+   // lib/constants/web_interceptors_config.dart (optional)
+   // Configure click interceptions and element hiding
+   // See file for detailed instructions
    ```
 
 3. **Update App Identity**:
