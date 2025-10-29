@@ -70,12 +70,12 @@ class WebElementInterceptor {
   WebElementInterceptor({
     required this.url,
     required this.elementSelector,
-    this.selectorType = SelectorType.css,
+    this.selectorType = SelectorType.xpath,
     this.action,
     this.disableOriginalClick = true,
-    this.hideElement = false,
-    this.delayMs = 500,
-    this.maxRetries = 10,
+    this.hideElement = true,
+    this.delayMs = 1500,
+    this.maxRetries = 15,
     this.retryIntervalMs = 1000,
     this.extractData,
   });

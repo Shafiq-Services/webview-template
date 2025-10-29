@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
       
       // Setup web interceptors from config file
       // To configure: Go to lib/constants/web_interceptors_config.dart
-      WebInterceptorsConfig.setupInterceptors(_interceptorService, context, _webViewController);
+      WebInterceptorsConfig.setupInterceptors(_interceptorService, context, _webViewController, _subscriptionController);
       
       // Setup handlers AFTER interceptors are registered (fixes timing issue)
       _interceptorService.setupHandlers(_webViewController);
