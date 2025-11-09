@@ -1,0 +1,348 @@
+---
+alwaysApply: true
+---
+
+# Flutter WebView Template - Architecture Rules
+# These rules define the architectural patterns and principles for this project.
+# Follow these when making changes or adding features.
+
+## CORE PHILOSOPHY
+
+1. **Minimal Configuration**: All user-editable settings in 3 config files only
+2. **Consolidation Over Separation**: Fewer files with related logic combined
+3. **Clean Naming**: Descriptive names (app_config.dart not my_app_urls.dart)
+4. **Backwards Compatibility**: Old class names work via proxies
+5. **Less Comments**: Code should be self-documenting
+
+## FOLDER STRUCTURE RULES
+
+### lib/config/ (User Configuration - 3 files only)
+- `app_config.dart` - Basic app settings (name, URL, colors, OneSignal)
+- `payment_config.dart` - Payment API keys ONLY (RevenueCat, Base44)
+- `webview_config.dart` - WebView configuration (subscription buttons, hide elements)
+
+**Rules:**
+- Keep these files minimal (20-150 lines each)
+- No business logic in config files
+- Use clear, short variable names
+- Minimal comments (code should be obvious)
+- Always maintain backwards compatibility classes
+
+### lib/services/ (Business Logic)
+- Consolidated services combining related functionality
+- Examples: `payment_service.dart` (RevenueCat + Base44), `notification_service.dart` (OneSignal + local storage)
+
+**Rules:**
+- Combine related services (don't split unnecessarily)
+- 100-300 lines per file is acceptable
+- Each service should have ONE clear purpose
+- Use static methods for stateless operations
+
+### lib/controllers/ (UI State Management)
+- `app_initializer.dart` - App startup initialization
+- `subscription_controller.dart` - Payment UI state
+- Keep minimal (2-3 controllers max)
+
+**Rules:**
+- Only create controllers for UI state management
+- Don't create controllers for utilities (use utils/ instead)
+- 50-200 lines per controller
+- One controller per major feature
+
+### lib/utils/ (Helper Functions)
+- Pure functions with no state
+- Examples: `error_handlers.dart`, `permissions.dart`, `subscription_helpers.dart`
+
+**Rules:**
+- Move simple utility functions here (not controllers/)
+- Files should be 10-100 lines
+- No classes, just functions (unless data classes)
+
+## FILE NAMING CONVENTIONS
+
+### Good Names ✅
+- `app_config.dart` (descriptive, clear purpose)
+- `payment_service.dart` (what it does)
+- `error_handlers.dart` (multiple handlers, plural)
+- `app_initializer.dart` (descriptive action)
+
+### Bad Names ❌
+- `my_app_urls.dart` (vague, redundant "my")
+- `revenue_cat_service.dart` + `base44_service.dart` (should be combined)
+- `inialize_web_view_features.dart` (typo, too verbose)
+- `constants/` folder (should be config/)
+
+## CODE CONSOLIDATION RULES
+
+### When to Merge Files
+Merge when files are:
+1. **Related functionality** (RevenueCat + Base44 sync → payment_service.dart)
+2. **Always used together** (OneSignal + local notification storage)
+3. **Under 300 lines combined** (still manageable)
+4. **Same domain** (both about payments, notifications, etc.)
+
+### When to Keep Separate
+Keep separate when:
+1. **Different domains** (payments vs notifications)
+2. **Independently useful** (can work without the other)
+3. **Over 300 lines combined** (too large to manage)
+4. **User configuration vs implementation** (config/ vs services/)
+
+## CONFIGURATION PATTERNS
+
+### Pattern: Subscription Button Config
+```dart
+// In webview_config.dart
+static final subscriptionButtons = {
+  '/page': [
+    SubscriptionButton(
+      xpath: 'XPATH_FROM_CHROME_DEVTOOLS',
+      productId: 'REVENUECAT_PRODUCT_ID',
+      displayName: 'DISPLAY_NAME',
+    ),
+  ],
+};
+```
+
+### Pattern: Hide Element Config
+```dart
+// In webview_config.dart
+static final hideElements = [
+  HideElement(url: '/page', xpath: 'ELEMENT_XPATH'),
+];
+```
+
+### Pattern: App Settings
+```dart
+// In app_config.dart - keep flat and simple
+class AppConfig {
+  static const String appName = 'AppName';
+  static String mainUrl = 'https://site.com/';
+  static const Color primaryColor = Color(0xFF...);
+}
+```
+
+## SERVICE CONSOLIDATION PATTERN
+
+### ✅ Good: Combined Service
+```dart
+// payment_service.dart
+class PaymentService {
+  // RevenueCat methods
+  Future<bool> purchaseProduct(String productId) {...}
+  
+  // Base44 sync methods (private)
+  Future<void> _syncSubscription(...) {...}
+  String _getHighestTierProduct(...) {...}
+}
+```
+
+### ❌ Bad: Separated Services
+```dart
+// revenue_cat_service.dart (separate file)
+class RevenueCatService {...}
+
+// base44_service.dart (separate file)
+class Base44Service {...}
+```
+
+## BACKWARDS COMPATIBILITY PATTERN
+
+Always maintain old class names when renaming:
+
+```dart
+// New main class
+class AppConfig {
+  static String mainUrl = 'https://...';
+}
+
+// Old class (backwards compatible)
+class Changes {
+  static String get mainUrl => AppConfig.mainUrl;
+  static set mainUrl(String value) => AppConfig.mainUrl = value;
+}
+```
+
+## COMMENT GUIDELINES
+
+### When to Comment ✅
+- Complex business logic that's not obvious
+- Why a specific approach was chosen
+- Workarounds for platform bugs
+- Integration points with external services
+
+### When NOT to Comment ❌
+- What the code does (should be obvious from names)
+- Restating the code in English
+- Excessive section dividers
+- Tutorial-style explanations (save for docs)
+
+### Good Comments
+```dart
+// Retrieve JWT from localStorage (not cookies) as per Base44 auth
+final token = await _getJwtToken();
+
+// Elite tier takes precedence over Premium when both active
+if (productIds.any((id) => id.contains('elite'))) {...}
+```
+
+### Bad Comments
+```dart
+// This function checks if the platform is Android ❌ (obvious)
+if (Platform.isAndroid) {...}
+
+// Get the customer ID ❌ (redundant)
+final customerId = customerInfo.originalAppUserId;
+```
+
+## INITIALIZATION PATTERN
+
+Use single initializer class:
+
+```dart
+// app_initializer.dart
+class AppInitializer {
+  static Future<void> initialize() async {
+    await _initializeWebView();
+    await NotificationService.initialize();
+  }
+}
+
+// main.dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  AppInitializer.initialize();
+  runApp(MyApp());
+}
+```
+
+## ERROR HANDLING PATTERN
+
+Utility functions in utils/, not controllers:
+
+```dart
+// utils/error_handlers.dart
+void handleErrorCode(String errorMessage, BuildContext context) {
+  if (errorMessage.contains('ERR_INTERNET_DISCONNECTED')) {
+    showNoInternetErrorScreen(context);
+  } else {
+    showCustomErrorScreen(errorMessage, context);
+  }
+}
+```
+
+## IMPORT ORGANIZATION
+
+Group imports logically:
+
+```dart
+// 1. Dart/Flutter imports
+import 'dart:async';
+import 'package:flutter/material.dart';
+
+// 2. Package imports
+import 'package:dio/dio.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
+
+// 3. Local imports (grouped by type)
+import '../config/payment_config.dart';
+import '../services/payment_service.dart';
+import '../utils/subscription_helpers.dart';
+```
+
+## FILE SIZE TARGETS
+
+- Config files: 20-150 lines (keep minimal)
+- Service files: 100-300 lines (consolidate related logic)
+- Controller files: 50-200 lines (one responsibility)
+- Utils: 10-100 lines (small helpers)
+- Models: 10-50 lines (data only)
+
+If exceeding:
+1. Can related files be merged? (reduce file count)
+2. Is this doing too much? (split by responsibility)
+3. Can logic be moved to utils? (extract helpers)
+
+## WHEN ADDING NEW FEATURES
+
+### Checklist:
+1. ✅ Can this be added to existing config file? (don't create new ones)
+2. ✅ Can this be merged with existing service? (consolidate)
+3. ✅ Is the name descriptive and clear? (no "my_", no vague names)
+4. ✅ Is it in the right folder? (config/services/controllers/utils)
+5. ✅ Are comments minimal and useful? (explain WHY not WHAT)
+6. ✅ Does it maintain backwards compatibility? (if renaming)
+7. ✅ Is the file size reasonable? (see targets above)
+
+## PAYMENT INTEGRATION RULES
+
+1. **Subscription buttons** go in `webview_config.dart` (not payment_config.dart)
+2. **API keys only** go in `payment_config.dart` (no logic)
+3. **Payment business logic** goes in `payment_service.dart`
+4. **Always sync highest tier** to backend (Elite > Premium)
+5. **Use explicit product ID** when available (from purchase event)
+
+## WEBVIEW INTERCEPTION RULES
+
+1. **Get XPath** from Chrome DevTools (Right-click → Copy XPath)
+2. **Test XPath** works before committing
+3. **Group by page** in subscriptionButtons map
+4. **Clear display names** for subscription buttons
+5. **Document which page** the XPath is for (in config)
+
+## TESTING REQUIREMENTS
+
+Before committing changes:
+1. ✅ Run `flutter clean && flutter pub get`
+2. ✅ Test on iOS simulator
+3. ✅ Test on Android emulator
+4. ✅ Check no linter errors (`flutter analyze`)
+5. ✅ Verify imports updated correctly
+6. ✅ Test all modified features work
+
+## DOCUMENTATION RULES
+
+1. **One setup guide** (SETUP_GUIDE.txt) - practical, concise
+2. **Domain-specific guides** (REVENUECAT_GUIDE.md) - detailed when needed
+3. **No scattered docs** - consolidate related information
+4. **Keep updated** - update docs when changing architecture
+
+## ANTI-PATTERNS TO AVOID
+
+### ❌ Don't Do This:
+- Creating separate files for closely related logic
+- Using vague folder names (helpers/, managers/, handlers/)
+- Adding "my_" prefix to files
+- Excessive comments explaining obvious code
+- Creating utility classes with only static methods (use functions)
+- Splitting config across multiple locations
+- Creating new files without checking if existing file can be extended
+
+### ✅ Do This Instead:
+- Combine related logic in single service
+- Use descriptive folder names (utils/, services/, config/)
+- Use clear, descriptive file names
+- Minimal comments on complex logic only
+- Use pure functions in utils/
+- Keep all config in config/ folder (3 files max)
+- Extend existing files when possible
+
+## VERSION CONTROL
+
+When making architectural changes:
+1. Document in SETUP_GUIDE.txt under "Template Architecture Principles"
+2. Update this .cursorrules file
+3. Update TEMPLATE_SETUP.md if user-facing
+4. Test thoroughly before committing
+
+## REMINDER: LESS IS MORE
+
+The goal is a template that:
+- ✅ New developers can understand in 10 minutes
+- ✅ Has all settings in 3 obvious config files
+- ✅ Follows consistent patterns throughout
+- ✅ Minimizes file count without sacrificing clarity
+- ✅ Self-documents through good naming
+
+When in doubt, consolidate rather than separate.
+

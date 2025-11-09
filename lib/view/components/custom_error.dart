@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:media_store_plus/media_store_plus.dart';
 
-import '../../constants/my_app_colors.dart';
+import '../../config/app_config.dart';
 import '../../utils/internet_connectivity.dart';
 import '../screens/webview_screens/home_screen.dart';
 

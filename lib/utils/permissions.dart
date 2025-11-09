@@ -1,7 +1,7 @@
+import 'package:galaxy2000_ai/services/notification_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
 
-import '../services/one_signal_notification.dart';
 
 /// Request basic permissions needed by the app
 void requestPermissions() async {
@@ -37,7 +37,7 @@ Future<bool> requestNotificationPermissionWithDelay({int delaySeconds = 2}) asyn
     await Future.delayed(Duration(seconds: delaySeconds));
     
     // Request notification permission through OneSignal
-    final granted = await OneSignalNotification.requestNotificationPermission();
+    final granted = await NotificationService.requestNotificationPermission();
     
     if (granted) {
       debugPrint('Notification permission granted');
@@ -55,7 +55,7 @@ Future<bool> requestNotificationPermissionWithDelay({int delaySeconds = 2}) asyn
 /// Check if notification permission is granted
 Future<bool> hasNotificationPermission() async {
   try {
-    return await OneSignalNotification.hasNotificationPermission();
+    return await NotificationService.hasNotificationPermission();
   } catch (e) {
     debugPrint('Error checking notification permission: $e');
     return false;

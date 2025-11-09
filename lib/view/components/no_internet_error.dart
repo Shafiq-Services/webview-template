@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../constants/my_app_colors.dart';
+import '../../config/app_config.dart';
 import '../screens/webview_screens/home_screen.dart';
 
 class NoInternetErrorScreen extends StatefulWidget {

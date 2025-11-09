@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Galaxy2000 Ai</string>
+	<string>CardCenter</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>galaxy2000_ai</string>
+	<string>CardCenter</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,6 +28,7 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -41,9 +42,39 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+
+	<!-- Camera -->
+	<key>NSCameraUsageDescription</key>
+	<string>CardCenter uses your camera to photograph trading cards for professional grading analysis. The app analyzes card centering, condition, and provides detailed grade estimates by measuring card borders and detecting defects.</string>
+
+	<!-- Read from Photos (gallery) -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CardCenter accesses your photo library to analyze existing photos of trading cards for professional grading. The app measures card centering, evaluates condition, and provides grade estimates from your saved card images.</string>
+
+	<!-- Location (required by App Store notice) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>CardCenter uses your location to provide region-specific grading standards and connect you with local trading card communities and shops in your area.</string>
+
+	<!-- Push Notifications - Marketing and Updates -->
+	<key>NSUserNotificationAlertStyle</key>
+	<string>alert</string>
+	
+	<!-- Background App Refresh for notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

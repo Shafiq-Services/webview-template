@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../constants/my_app_colors.dart';
+import '../../../config/app_config.dart';
 import '../../../utils/permissions.dart';
 import '../webview_screens/home_screen.dart';
 import 'onboarding_screen.dart';
@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
           context,
           MaterialPageRoute(
             builder: (context) {
-              return isFirstTime ? const OnboardingScreen() : HomeScreen();
+              return HomeScreen();
             },
           ),
         ),
@@ -55,23 +55,9 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MyColors.konboardingBgColor,
+      backgroundColor: Color(0xff09ddae),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/app_icons/splash.png', height: 150.0, width: 150.0),
-            // const SizedBox(height: 20.0),
-            //  Text(
-            //   Changes.AppTitle,
-            //   style: TextStyle(
-            //     fontSize: 24.0,
-            //     fontWeight: FontWeight.bold,
-            //     color: Colors.white,
-            //   ),
-            // ),
-          ],
-        ),
+        child: Image.asset('assets/app_icons/splash.png'),
       ),
     );
   }

@@ -14,13 +14,13 @@ import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 
-import '../../../constants/my_app_colors.dart';
-import '../../../constants/my_app_urls.dart';
-import '../../../constants/web_interceptors_config.dart';
-import '../../../controllers/error_handle.dart';
+import '../../../config/app_config.dart';
+import '../../../config/webview_config.dart';
 import '../../../controllers/subscription_controller.dart';
+import '../../../utils/error_handlers.dart';
 import '../../../utils/internet_connectivity.dart';
 import '../../../services/web_element_interceptor_service.dart';
+import '../../../services/payment_service.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -126,6 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
               pullToRefreshController: _pullToRefreshController,
               onWebViewCreated: (controller) {
                 _webViewController = controller;
+                // Set webview controller for payment service (to access localStorage)
+                PaymentService().setWebViewController(controller);
                 // NOTE: setupHandlers will be called AFTER interceptors are registered
                 // in addPostFrameCallback to avoid timing issues
               },

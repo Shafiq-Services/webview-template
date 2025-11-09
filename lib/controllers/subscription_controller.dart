@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-import '../services/revenue_cat_service.dart';
+import '../services/payment_service.dart';
 
 /// 🚀 SIMPLE Subscription Controller
 /// 
@@ -22,7 +22,7 @@ class SubscriptionController {
   // 🔧 MINIMAL STATE
   // ═══════════════════════════════════════════════════════════════════════════
   
-  final RevenueCatService _service = RevenueCatService();
+  final PaymentService _service = PaymentService();
   bool _isInitialized = false;
   BuildContext? _context;
 

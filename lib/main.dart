@@ -6,8 +6,8 @@ import 'package:galaxy2000_ai/view/screens/splash_onboarding/custom_splash_scree
 import 'package:media_store_plus/media_store_plus.dart';
 
 
-import 'constants/my_app_urls.dart';
-import 'controllers/initialize_app.dart';
+import 'config/app_config.dart';
+import 'controllers/app_initializer.dart';
 
 
 void main() async {
@@ -17,7 +17,7 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  InitilizeApp.callFunctions();
+  AppInitializer.initialize();
   if (Platform.isAndroid) {
     await MediaStore.ensureInitialized();
     MediaStore.appFolder = Changes.androidMediaStoreFolderName;
