@@ -66,14 +66,14 @@ class WebViewConfig {
     });
     
     // Register hide elements
-    for (var element in hideElements) {
-      allInterceptors.add(
-        WebElementInterceptor(
-          url: element.url,
-          elementSelector: element.xpath,
-        ),
-      );
-    }
+    // for (var element in hideElements) {
+    //   allInterceptors.add(
+    //     WebElementInterceptor(
+    //       url: element.url,
+    //       elementSelector: element.xpath,
+    //     ),
+    //   );
+    // }
     
     service.registerMultipleInterceptors(allInterceptors);
   }

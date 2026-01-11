@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "iPhone (Shafiq's iPhone)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "00008020-001A1D320C51002E"
+        },
+        {
+            "name": "Android (Realme RMX3867)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "192.168.1.12:41593"
+        },
+        {
+            "name": "All Devices",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "all"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "📱 Both Devices (iPhone + Android)",
+            "configurations": [
+                "iPhone (Shafiq's iPhone)",
+                "Android (Realme RMX3867)"
+            ],
+            "stopAll": true
+        }
+    ]
+}
+
+
+

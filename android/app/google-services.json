@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "879979326070",
+    "project_id": "pair-48616",
+    "storage_bucket": "pair-48616.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:879979326070:android:fe9bee2dd70a6f92950d57",
+        "android_client_info": {
+          "package_name": "com.offsha.convoconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArlLbWdcnVzXl0iR7jXpcdZ6hOF6TuljQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

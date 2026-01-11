@@ -1,12 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../config/app_config.dart';
 import '../../../utils/permissions.dart';
 import '../webview_screens/home_screen.dart';
-import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,9 +15,6 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      bool isFirstTime = prefs.getBool('isFirstTime') ?? true;
-
       // Request notification permission with delay during splash screen
       // This runs asynchronously and doesn't block the splash screen navigation
       _requestNotificationPermission();
@@ -55,9 +49,12 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xff09ddae),
+      backgroundColor: Color(0xFFF5F0E8),
       body: Center(
-        child: Image.asset('assets/app_icons/splash.png'),
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFf1bcb5)),
+          strokeWidth: 3,
+        ),
       ),
     );
   }

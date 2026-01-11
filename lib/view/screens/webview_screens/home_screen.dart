@@ -21,6 +21,7 @@ import '../../../utils/error_handlers.dart';
 import '../../../utils/internet_connectivity.dart';
 import '../../../services/web_element_interceptor_service.dart';
 import '../../../services/payment_service.dart';
+import '../../../services/notification_service.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -142,6 +143,14 @@ class _HomeScreenState extends State<HomeScreen> {
               onLoadStop: (controller, url) async {
                 // Don't set _isPageLoaded here
                 Changes.mainUrl = url?.toString() ?? '';
+
+                // Pass OneSignal App ID to WebView
+                await controller.evaluateJavascript(
+                  source: 'window.ONESIGNAL_APP_ID = "${AppConfig.oneSignalAppId}";'
+                );
+
+                // Try to get user email from localStorage and set as OneSignal external user ID
+                await _syncUserEmailWithOneSignal(controller);
 
                 // Inject element interceptors for matching URLs
                 await _interceptorService.injectInterceptors(controller, url);
@@ -360,31 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Positioned.fill(
             ),
           ),
-        ),
-        floatingActionButton: _isPageLoaded
-            ? AnimatedOpacity(
-          opacity: 1.0,
-          duration: const Duration(milliseconds: 800),
-          child: FloatingActionButton(
-            backgroundColor: MyColors.kmainColor,
-            child: const Icon(Icons.share, color: Colors.black),
-            onPressed: () async {
-              final currentUrl = await _webViewController.getUrl();
-              if (currentUrl != null) {
-                await Share.share(currentUrl.toString(),
-                    subject: "Check out this page!");
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("No webpage loaded to share")),
-                );
-              }
-            },
-          ),
-
-        )
-            : null,
-        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat, // <-- move FAB to left
-
+        ),// <-- move FAB to left
       ),
     );
   }
@@ -457,6 +442,66 @@ class _HomeScreenState extends State<HomeScreen> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       throw 'Could not launch $url';
+    }
+  }
+
+  /// Get user email from WebView localStorage and set as OneSignal external user ID
+  Future<void> _syncUserEmailWithOneSignal(InAppWebViewController controller) async {
+    try {
+      // Try to get user email from localStorage (common Base44/auth storage keys)
+      final result = await controller.evaluateJavascript(source: """
+        (function() {
+          // Try to get user data from common localStorage keys
+          var userData = localStorage.getItem('user') || 
+                         localStorage.getItem('currentUser') || 
+                         localStorage.getItem('auth_user') ||
+                         localStorage.getItem('userInfo');
+          
+          if (userData) {
+            try {
+              var parsed = JSON.parse(userData);
+              // Return email from user object
+              return parsed.email || parsed.user_email || parsed.userEmail || null;
+            } catch(e) {
+              return null;
+            }
+          }
+          
+          // Try direct email key
+          var email = localStorage.getItem('user_email') || 
+                      localStorage.getItem('email') ||
+                      localStorage.getItem('userEmail');
+          if (email) return email;
+          
+          // Try to extract from JWT token
+          var token = localStorage.getItem('token') || 
+                      localStorage.getItem('base44_access_token') ||
+                      localStorage.getItem('access_token');
+          if (token) {
+            try {
+              var parts = token.split('.');
+              if (parts.length === 3) {
+                var payload = JSON.parse(atob(parts[1]));
+                return payload.email || payload.user_email || payload.sub || null;
+              }
+            } catch(e) {
+              return null;
+            }
+          }
+          
+          return null;
+        })();
+      """);
+
+      if (result != null && result.toString().isNotEmpty && result.toString() != 'null') {
+        final email = result.toString();
+        print('🔔 Found user email in localStorage: $email');
+        await NotificationService.setExternalUserId(email);
+      } else {
+        print('🔔 No user email found in localStorage (user may not be logged in)');
+      }
+    } catch (e) {
+      print('🔔 Error getting user email from localStorage: $e');
     }
   }
 

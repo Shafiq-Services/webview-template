@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 /// 📱 APP CONFIG - Basic app settings
 class AppConfig {
   // Basic Settings
-  static const String appName = 'CardCenter';
-  static String mainUrl = 'https://cardcenter.pro/';
-  static String startPointUrl = 'https://cardcenter.pro/';
-  static String mediaFolderName = 'CardCenter';
+  static const String appName = 'PAIR - Long Distance Dating';
+  static String mainUrl = 'https://convo-connect-6fcd3499.base44.app/';
+  static String startPointUrl = 'https://convo-connect-6fcd3499.base44.app/';
+  static String mediaFolderName = 'PAIR';
   
   // OneSignal
-  static String oneSignalAppId = '587bdb83-6f33-44bb-a21c-01541f01d4f4';
+  static String oneSignalAppId = '666fc920-be76-4409-9584-c6abcfe26c5e';
   
   // Colors
   static const Color primaryColor = Color.fromARGB(255, 255, 255, 255);

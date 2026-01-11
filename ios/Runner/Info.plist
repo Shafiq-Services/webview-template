@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>CardCenter</string>
+	<string>PAIR - Long Distance Dating</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>CardCenter</string>
+	<string>PAIR - Long Distance Dating</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -54,15 +54,15 @@
 
 	<!-- Camera -->
 	<key>NSCameraUsageDescription</key>
-	<string>CardCenter uses your camera to photograph trading cards for professional grading analysis. The app analyzes card centering, condition, and provides detailed grade estimates by measuring card borders and detecting defects.</string>
+	<string>PAIR uses your camera to capture photos and videos for sharing with your partner.</string>
 
 	<!-- Read from Photos (gallery) -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>CardCenter accesses your photo library to analyze existing photos of trading cards for professional grading. The app measures card centering, evaluates condition, and provides grade estimates from your saved card images.</string>
+	<string>PAIR accesses your photo library to share photos and videos with your partner.</string>
 
 	<!-- Location (required by App Store notice) -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>CardCenter uses your location to provide region-specific grading standards and connect you with local trading card communities and shops in your area.</string>
+	<string>PAIR uses your location to show distance between you and your partner.</string>
 
 	<!-- Push Notifications - Marketing and Updates -->
 	<key>NSUserNotificationAlertStyle</key>

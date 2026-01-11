@@ -16,10 +16,10 @@ Change these values:
     flutter pub global activate rename
 
   - Change bundle ID:
-    rename setBundleId --targets ios,android --value "com.company.appname"
+    rename setBundleId --targets ios,android --value "com.offsha.convoconnect"
 
   - Change app name:
-    rename setAppName --targets ios,android --value "MyApp"
+    rename setAppName --targets ios,android --value "Convo Connect"
 
   - Change app icon:
     Edit: icons_launcher.yaml

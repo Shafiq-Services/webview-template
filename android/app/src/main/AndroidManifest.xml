@@ -94,7 +94,7 @@
         <package android:name="com.instagram.android" />
     </queries>
     <application
-        android:label="CardCenter"
+        android:label="PAIR - Long Distance Dating"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -127,7 +127,7 @@
 
              <provider
         android:name="androidx.core.content.FileProvider"
-        android:authorities="com.offshafiq.smokesocial.flutter_inappwebview_android.fileprovider"
+        android:authorities="com.offsha.convoconnect.flutter_inappwebview_android.fileprovider"
         android:exported="false"
         android:grantUriPermissions="true">
         <meta-data
@@ -137,6 +137,21 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        
+        <!-- OneSignal Notification Icons -->
+        <!-- Small icon shown in status bar and as badge on large icon -->
+        <meta-data
+            android:name="com.onesignal.NotificationDefaultSmallIconResourceId"
+            android:resource="@drawable/ic_stat_onesignal_default" />
+        <!-- Large icon shown in notification panel (comment out to remove badge overlay) -->
+        <!-- <meta-data
+            android:name="com.onesignal.NotificationDefaultLargeIconResourceId"
+            android:resource="@drawable/ic_onesignal_large_icon_default" /> -->
+        
+        <!-- OneSignal Notification Accent Color -->
+        <meta-data
+            android:name="com.onesignal.NotificationAccentColor.DEFAULT"
+            android:value="FFf1bcb5" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
