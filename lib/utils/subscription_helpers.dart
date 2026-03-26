@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/payment_config.dart';
 import '../controllers/subscription_controller.dart';
 import '../models/web_element_interceptor_model.dart';
 
@@ -16,8 +17,21 @@ WebElementInterceptor createSubscriptionButton({
     elementSelector: elementSelector,
     hideElement: false,
     action: () async {
+      if (PaymentConfig.testInterceptorsOnly) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Intercepted: $displayName\nProduct: $buttonName'),
+              backgroundColor: Colors.green.shade700,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+        return;
+      }
       if (subscriptionController == null) return;
-      // buttonName IS the product ID (e.g., 'monthly_premium')
       await subscriptionController.purchaseProduct(buttonName, context);
     },
   );

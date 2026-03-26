@@ -1,6 +1,4 @@
-
 import 'package:flutter/material.dart';
-import 'package:media_store_plus/media_store_plus.dart';
 
 import '../../config/app_config.dart';
 import '../../utils/internet_connectivity.dart';
@@ -34,7 +32,7 @@ class CustomErrorScreen extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              errorMessage ?? 'Unknown error',
+              errorMessage,
               style: TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),

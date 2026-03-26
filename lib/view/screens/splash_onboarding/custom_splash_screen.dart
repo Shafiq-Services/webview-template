@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../config/app_config.dart';
 import '../../../utils/permissions.dart';
 import '../webview_screens/home_screen.dart';
+import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,9 +18,12 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      // Request notification permission with delay during splash screen
-      // This runs asynchronously and doesn't block the splash screen navigation
-      _requestNotificationPermission();
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      bool isFirstTime = prefs.getBool('isFirstTime') ?? true;
+
+      if (AppConfig.deliveryMilestone >= 2) {
+        _requestNotificationPermission();
+      }
 
       Timer(
         Duration(milliseconds: 2500),
@@ -25,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
           context,
           MaterialPageRoute(
             builder: (context) {
-              return HomeScreen();
+              return isFirstTime ? const OnboardingScreen() : HomeScreen();
             },
           ),
         ),
@@ -49,11 +55,22 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0E8),
+      backgroundColor: MyColors.konboardingBgColor,
       body: Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFf1bcb5)),
-          strokeWidth: 3,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset('assets/app_icons/splash.png', height: 150.0, width: 150.0),
+            // const SizedBox(height: 20.0),
+            //  Text(
+            //   Changes.AppTitle,
+            //   style: TextStyle(
+            //     fontSize: 24.0,
+            //     fontWeight: FontWeight.bold,
+            //     color: Colors.white,
+            //   ),
+            // ),
+          ],
         ),
       ),
     );

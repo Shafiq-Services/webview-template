@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -15,6 +16,7 @@ import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 
 import '../../../config/app_config.dart';
+import '../../../config/payment_config.dart';
 import '../../../config/webview_config.dart';
 import '../../../controllers/subscription_controller.dart';
 import '../../../utils/error_handlers.dart';
@@ -22,7 +24,234 @@ import '../../../utils/internet_connectivity.dart';
 import '../../../services/web_element_interceptor_service.dart';
 import '../../../services/payment_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../services/deep_link_service.dart';
 
+/// Viewport-fit=cover so web app gets env(safe-area-inset-*) for top (header below status bar).
+const String _viewportFitCoverScript = r'''
+(function() {
+  var m = document.querySelector('meta[name=viewport]');
+  if (m) {
+    var c = m.getAttribute('content') || '';
+    if (c.indexOf('viewport-fit=cover') === -1)
+      m.setAttribute('content', (c ? c + ', ' : '') + 'viewport-fit=cover');
+  } else {
+    var meta = document.createElement('meta');
+    meta.name = 'viewport';
+    meta.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
+    document.head.appendChild(meta);
+  }
+})();
+''';
+
+/// Android only: neutralize safe-area for bottom nav and top header so layout matches browser.
+/// Injects <style> + MutationObserver for SPA. iOS: no injection; behavior unchanged.
+/// Verification: getComputedStyle(document.querySelector('header.sticky.top-0')).paddingTop === '0px'
+///              getComputedStyle(document.querySelector('.safe-area-bottom')).paddingBottom === '0px'
+const String _androidDisableSafeAreaBottomPaddingScript = r'''
+(function() {
+  var styleId = 'webview-template-android-safe-area-override';
+  function fixNow() {
+    var bottomList = document.querySelectorAll('.safe-area-bottom');
+    for (var i = 0; i < bottomList.length; i++) {
+      bottomList[i].style.setProperty('padding-bottom', '0', 'important');
+    }
+    var headerList = document.querySelectorAll('header.sticky.top-0');
+    for (var j = 0; j < headerList.length; j++) {
+      headerList[j].style.setProperty('padding-top', '0', 'important');
+    }
+  }
+  if (!document.getElementById(styleId)) {
+    var style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = '.safe-area-bottom { padding-bottom: 0 !important; } header.sticky.top-0 { padding-top: 0 !important; }';
+    (document.head || document.documentElement).appendChild(style);
+  }
+  fixNow();
+  var observer = new MutationObserver(function() { fixNow(); });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  setTimeout(function() { observer.disconnect(); }, 2000);
+})();
+''';
+
+/// M1 only: Strictly disable camera and image pickers until M2. Stubs getUserMedia and blocks image/capture file inputs.
+const String _disableCameraAndImagePickerScript = r'''
+(function() {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices) return;
+  var reject = function() {
+    return Promise.reject(new DOMException('Camera and image picker are disabled until the next app update.', 'NotAllowedError'));
+  };
+  if (navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia = reject;
+  }
+  if (navigator.mediaDevices.getDisplayMedia) {
+    navigator.mediaDevices.getDisplayMedia = reject;
+  }
+  function isImageOrCaptureFileInput(input) {
+    if (!input || input.tagName !== 'INPUT' || input.type !== 'file') return false;
+    var accept = (input.getAttribute('accept') || '').toLowerCase();
+    return input.hasAttribute('capture') || accept.indexOf('image') !== -1;
+  }
+  document.addEventListener('click', function(e) {
+    var el = e.target;
+    while (el && el !== document) {
+      if (el.tagName === 'INPUT' && isImageOrCaptureFileInput(el)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+      }
+      if (el.tagName === 'LABEL') {
+        var control = el.control || (el.htmlFor ? document.getElementById(el.htmlFor) : el.querySelector('input[type=file]'));
+        if (control && isImageOrCaptureFileInput(control)) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return false;
+        }
+      }
+      el = el.parentNode;
+    }
+  }, true);
+  document.addEventListener('change', function(e) {
+    if (e.target && isImageOrCaptureFileInput(e.target)) {
+      e.target.value = '';
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+})();
+''';
+
+/// M4: Polyfill navigator.share so the web app's share calls open the native share sheet.
+const String _nativeSharePolyfillScript = r'''
+(function() {
+  if (window._nativeSharePolyfill) return;
+  window._nativeSharePolyfill = true;
+  navigator.share = function(data) {
+    return new Promise(function(resolve, reject) {
+      try {
+        if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+          window.flutter_inappwebview.callHandler('native_share', JSON.stringify(data || {}));
+          resolve();
+        } else {
+          reject(new DOMException('Share not available', 'AbortError'));
+        }
+      } catch(e) {
+        reject(e);
+      }
+    });
+  };
+  navigator.canShare = function() { return true; };
+})();
+''';
+
+/// M4: Optional recipe/share-page API — set [AppConfig.shareRecipeApiUrl] (POST with Bearer token).
+String _recipeShareInterceptScriptFor(String apiUrl) {
+  final u = jsonEncode(apiUrl);
+  return '''
+(function() {
+  if (window._recipeShareIntercepted) return;
+  window._recipeShareIntercepted = true;
+  var _shareUrlCache = {};
+  var apiUrl = $u;
+  document.addEventListener('click', function(e) {
+    var t = e.target;
+    var btn = t.closest ? (t.closest('button[aria-label="Share recipe"]') || t.closest('[aria-label="Share recipe"]')) : null;
+    if (!btn) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    e.stopPropagation();
+    (async function() {
+      try {
+        var token = localStorage.getItem('base44_access_token') || localStorage.getItem('token');
+        var params = new URLSearchParams(window.location.search);
+        var recipeId = params.get('id');
+        var titleEl = document.querySelector('[class*="font-extrabold"]') || document.querySelector('h3') || document.querySelector('h1');
+        var title = (titleEl ? titleEl.textContent.trim() : '') || 'Recipe';
+        if (!recipeId || !token) return;
+        var url = _shareUrlCache[recipeId];
+        if (!url) {
+          var resp = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ recipeId: recipeId })
+          });
+          var data = await resp.json();
+          url = data.publicUrl || (data.data && data.data.publicUrl) || '';
+          if (url) _shareUrlCache[recipeId] = url;
+        }
+        if (url && window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+          window.flutter_inappwebview.callHandler('native_share', JSON.stringify({
+            title: title,
+            text: 'Check out this recipe: ' + title + '!',
+            url: url
+          }));
+        }
+      } catch(err) { console.log('Share error: ' + err); }
+    })();
+  }, true);
+})();
+''';
+}
+
+/// Intercepts the Subscribe CTA in the "Choose plan" dialog on /selectplan.
+/// Detects which plan (annual/monthly) the user selected by checking the
+/// border-cornflower class, then calls the dialog_plan_purchase Flutter handler
+/// with the correct product ID.
+const String _dialogSubscribeInterceptScript = r'''
+(function() {
+  function interceptDialog() {
+    var dialog = document.querySelector('div[role="dialog"]');
+    if (!dialog) return;
+
+    var subscribeBtn = null;
+    for (var i = 0; i < dialog.children.length; i++) {
+      var child = dialog.children[i];
+      if (child.tagName === 'BUTTON' &&
+          child.className.indexOf('bg-cornflower') !== -1 &&
+          child.className.indexOf('absolute') === -1) {
+        subscribeBtn = child;
+        break;
+      }
+    }
+
+    if (!subscribeBtn || subscribeBtn._flutterDialogIntercepted) return;
+
+    var clone = subscribeBtn.cloneNode(true);
+    subscribeBtn.parentNode.replaceChild(clone, subscribeBtn);
+    clone._flutterDialogIntercepted = true;
+    clone.style.cursor = 'pointer';
+
+    clone.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var spaceDiv = dialog.querySelector('[class*="space-y-3"]');
+      var isMonthly = false;
+      if (spaceDiv) {
+        for (var j = 0; j < spaceDiv.children.length; j++) {
+          if (spaceDiv.children[j].tagName === 'BUTTON') {
+            isMonthly = spaceDiv.children[j].className.indexOf('border-cornflower') !== -1;
+            break;
+          }
+        }
+      }
+
+      var ids = window.__RC_PRODUCT_IDS || {};
+      var productId = isMonthly ? (ids.monthly || '') : (ids.annual || '');
+
+      console.log('Dialog subscribe: ' + productId);
+      if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+        window.flutter_inappwebview.callHandler('dialog_plan_purchase', productId);
+      }
+    }, true);
+  }
+
+  if (document.body) {
+    new MutationObserver(function() { interceptDialog(); })
+      .observe(document.body, { childList: true, subtree: true });
+  }
+  setTimeout(interceptDialog, 1500);
+})();
+''';
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({super.key}) {}
@@ -49,6 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // ignore: unused_field
   bool _isLoading = false; // Reserved for loading state feature
   Timer? _debounceTimer;
+  StreamSubscription<String>? _deepLinkSub;
   @override
   void initState() {
     super.initState();
@@ -75,26 +305,162 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       CheckInternetConnection.checkInternetFunction();
-
-      // Initialize subscription controller
-      await _subscriptionController.initialize();
-      
-      // Setup web interceptors from config file
-      // To configure: Go to lib/constants/web_interceptors_config.dart
-      WebInterceptorsConfig.setupInterceptors(_interceptorService, context, _webViewController, _subscriptionController);
-      
-      // Setup handlers AFTER interceptors are registered (fixes timing issue)
-      _interceptorService.setupHandlers(_webViewController);
     });
+
+    // Listen for deep links while app is running (warm start)
+    _deepLinkSub = DeepLinkService().linkStream.listen((url) {
+      if (kDebugMode) print('🔗 Loading deep link in WebView: $url');
+      _webViewController.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
+    });
+  }
+
+  /// Called from onWebViewCreated once the controller is available.
+  void _setupInterceptorsAndHandlers(InAppWebViewController controller) async {
+    final subscriptionEnabled = (Platform.isAndroid && AppConfig.deliveryMilestone >= 3) ||
+        (Platform.isIOS && AppConfig.deliveryMilestone >= 5);
+    if (subscriptionEnabled && !PaymentConfig.testInterceptorsOnly) {
+      await _subscriptionController.initialize();
+      if (!mounted) return;
+      WebInterceptorsConfig.setupInterceptors(_interceptorService, context, controller, _subscriptionController);
+    } else if (subscriptionEnabled) {
+      WebInterceptorsConfig.setupInterceptors(_interceptorService, context, controller, _subscriptionController);
+    } else {
+      WebInterceptorsConfig.setupInterceptors(_interceptorService, context, controller, null);
+    }
+    _interceptorService.setupHandlers(controller);
+
+    // Dialog "Choose plan" Subscribe CTA: detects selected plan and triggers purchase
+    if (subscriptionEnabled) {
+      controller.addJavaScriptHandler(
+        handlerName: 'dialog_plan_purchase',
+        callback: (args) async {
+          final rawId = args.isNotEmpty ? args[0].toString() : '';
+          final isMonthly = rawId.contains('monthly');
+          final productId = isMonthly
+              ? PaymentConfig.monthlyProductId
+              : PaymentConfig.annualProductId;
+          final displayName = isMonthly
+              ? 'Monthly Subscription'
+              : 'Yearly Subscription';
+
+          if (PaymentConfig.testInterceptorsOnly) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Intercepted: $displayName\nProduct: $productId'),
+                  backgroundColor: Colors.green.shade700,
+                  duration: const Duration(seconds: 3),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              );
+            }
+            return;
+          }
+          await _subscriptionController.purchaseProduct(productId, context);
+        },
+      );
+      controller.addJavaScriptHandler(
+        handlerName: 'restore_purchases',
+        callback: (args) async {
+          if (PaymentConfig.testInterceptorsOnly) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Restore purchases (test mode)'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+            return;
+          }
+          await _subscriptionController.restorePurchases(context);
+        },
+      );
+      _interceptorService.registerUrlScript('/selectplan', _dialogSubscribeInterceptScript);
+    }
+
+    // M4: Recipe share button interceptor + native share handler
+    if (AppConfig.deliveryMilestone >= 4) {
+      controller.addJavaScriptHandler(
+        handlerName: 'native_share',
+        callback: (args) async {
+          try {
+            final raw = args.isNotEmpty ? args[0] : '{}';
+            final data = raw is String
+                ? Map<String, dynamic>.from(jsonDecode(raw))
+                : Map<String, dynamic>.from(raw);
+            final title = data['title']?.toString() ?? '';
+            final text = data['text']?.toString() ?? '';
+            final url = data['url']?.toString() ?? '';
+
+            final parts = <String>[];
+            if (text.isNotEmpty) parts.add(text);
+            if (url.isNotEmpty) parts.add(url);
+            final shareContent = parts.isNotEmpty ? parts.join('\n') : title;
+
+            if (shareContent.isNotEmpty) {
+              await SharePlus.instance.share(
+                ShareParams(text: shareContent, subject: title),
+              );
+            }
+          } catch (e) {
+            if (kDebugMode) print('⚠️ Native share error: $e');
+          }
+        },
+      );
+    }
   }
 
   @override
   void dispose() {
+    _deepLinkSub?.cancel();
     _pullToRefreshController.dispose();
     _interceptorService.dispose();
     super.dispose();
+  }
+
+  List<UserScript> _initialUserScripts() {
+    final subIap = (Platform.isAndroid && AppConfig.deliveryMilestone >= 3) ||
+        (Platform.isIOS && AppConfig.deliveryMilestone >= 5);
+    final rcIdsJson = jsonEncode({
+      'monthly': PaymentConfig.monthlyProductId,
+      'annual': PaymentConfig.annualProductId,
+    });
+    return [
+      UserScript(
+        source: _viewportFitCoverScript,
+        injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+      ),
+      if (Platform.isAndroid)
+        UserScript(
+          source: _androidDisableSafeAreaBottomPaddingScript,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        ),
+      if (AppConfig.deliveryMilestone < 2)
+        UserScript(
+          source: _disableCameraAndImagePickerScript,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        ),
+      if (subIap)
+        UserScript(
+          source: '(function(){window.__RC_PRODUCT_IDS=$rcIdsJson;})();',
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        ),
+      if (AppConfig.deliveryMilestone >= 4)
+        UserScript(
+          source: _nativeSharePolyfillScript,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        ),
+      if (AppConfig.deliveryMilestone >= 4 &&
+          AppConfig.shareRecipeApiUrl.isNotEmpty)
+        UserScript(
+          source: _recipeShareInterceptScriptFor(AppConfig.shareRecipeApiUrl),
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        ),
+    ];
   }
 
   @override
@@ -111,26 +477,35 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: MyColors.kprimaryColor,
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(0),
           child: AppBar(backgroundColor: MyColors.kprimaryColor, elevation: 0),
         ),
         body: SafeArea(
+          top: false,
+          bottom: true,
           child: RefreshIndicator(
             color: MyColors.kmainColor,
             onRefresh: () async {
               await _webViewController.reload();
             },
             child: InAppWebView(
-              initialUrlRequest: URLRequest(url: WebUri('${Changes.mainUrl}')),
+              initialUrlRequest: URLRequest(
+                url: WebUri(DeepLinkService().consumePendingLink() ?? Changes.mainUrl),
+              ),
+              initialUserScripts:
+                  UnmodifiableListView<UserScript>(_initialUserScripts()),
               pullToRefreshController: _pullToRefreshController,
               onWebViewCreated: (controller) {
                 _webViewController = controller;
-                // Set webview controller for payment service (to access localStorage)
-                PaymentService().setWebViewController(controller);
-                // NOTE: setupHandlers will be called AFTER interceptors are registered
-                // in addPostFrameCallback to avoid timing issues
+                // M3 (Android) / M4 (iOS): payment service needs WebView for subscription
+                if (!PaymentConfig.testInterceptorsOnly &&
+                    ((Platform.isAndroid && AppConfig.deliveryMilestone >= 3) ||
+                    (Platform.isIOS && AppConfig.deliveryMilestone >= 5))) {
+                  PaymentService().setWebViewController(controller);
+                }
+                _setupInterceptorsAndHandlers(controller);
               },
               onLoadStart: (controller, url) {
                 _isLoading = true;
@@ -141,18 +516,33 @@ class _HomeScreenState extends State<HomeScreen> {
               },
 
               onLoadStop: (controller, url) async {
-                // Don't set _isPageLoaded here
                 Changes.mainUrl = url?.toString() ?? '';
 
-                // Pass OneSignal App ID to WebView
-                await controller.evaluateJavascript(
-                  source: 'window.ONESIGNAL_APP_ID = "${AppConfig.oneSignalAppId}";'
-                );
+                await controller.evaluateJavascript(source: _viewportFitCoverScript);
+                if (Platform.isAndroid) {
+                  await controller.evaluateJavascript(source: _androidDisableSafeAreaBottomPaddingScript);
+                }
+                if (AppConfig.deliveryMilestone < 2) {
+                  await controller.evaluateJavascript(source: _disableCameraAndImagePickerScript);
+                }
+                if (AppConfig.deliveryMilestone >= 4) {
+                  await controller.evaluateJavascript(source: _nativeSharePolyfillScript);
+                  if (AppConfig.shareRecipeApiUrl.isNotEmpty) {
+                    await controller.evaluateJavascript(
+                      source: _recipeShareInterceptScriptFor(
+                          AppConfig.shareRecipeApiUrl),
+                    );
+                  }
+                }
 
-                // Try to get user email from localStorage and set as OneSignal external user ID
-                await _syncUserEmailWithOneSignal(controller);
+                // M2: Push notification – pass OneSignal App ID and sync user for notifications
+                if (AppConfig.deliveryMilestone >= 2) {
+                  await controller.evaluateJavascript(
+                    source: 'window.ONESIGNAL_APP_ID = "${AppConfig.oneSignalAppId}";'
+                  );
+                  await _syncUserEmailWithOneSignal(controller);
+                }
 
-                // Inject element interceptors for matching URLs
                 await _interceptorService.injectInterceptors(controller, url);
               },
 
@@ -204,8 +594,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Initialize OneSignal when user reaches dashboard
                   // OneSignalNotification.initialize();
                 }
-                
-                // Inject element interceptors for matching URLs
+                // Inject element interceptors and URL-conditioned scripts (e.g. addrecipe camera)
                 _interceptorService.injectInterceptors(controller, url);
               },
               onConsoleMessage: (controller, consoleMessage) {
@@ -215,6 +604,23 @@ class _HomeScreenState extends State<HomeScreen> {
               shouldOverrideUrlLoading: (controller, navAction) async {
                 final url = navAction.request.url?.toString() ?? '';
                 if (kDebugMode) print("🔗 shouldOverrideUrlLoading: $url");
+
+                // M3: Block Stripe checkout redirects (web uses Stripe, app uses RevenueCat)
+                final blockedHosts = <String>{'buy.stripe.com', 'checkout.stripe.com'};
+                // Store subscription management URLs → open externally
+                final externalHosts = <String>{'play.google.com', 'apps.apple.com'};
+                if (url.startsWith('http')) {
+                  final host = Uri.parse(url).host.toLowerCase();
+                  if (blockedHosts.contains(host)) {
+                    if (kDebugMode) print('🚫 Blocked Stripe redirect: $url');
+                    return NavigationActionPolicy.CANCEL;
+                  }
+                  if (externalHosts.contains(host)) {
+                    if (kDebugMode) print('🔗 Opening store management externally: $url');
+                    await _launchExternalUrl(url);
+                    return NavigationActionPolicy.CANCEL;
+                  }
+                }
 
                 // Domains that MUST stay inside WebView (OAuth + your site)
                 final allowInAppHosts = <String>{
@@ -251,12 +657,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   return NavigationActionPolicy.ALLOW;
                 }
 
-                // Non-HTTP schemes -> try external apps (mailto:, tel:, intent://, whatsapp:)
+                // Non-HTTP schemes -> try external apps
                 final lower = url.toLowerCase();
                 if (lower.startsWith('mailto:') ||
                     lower.startsWith('tel:') ||
                     lower.startsWith('intent://') ||
-                    //  lower.startsWith('whatsapp://') // add others you support
+                    lower.startsWith('itms-apps://') ||
                     lower.startsWith('tg://') ||
                     lower.startsWith('sms:')) {
                   try {
@@ -273,8 +679,8 @@ class _HomeScreenState extends State<HomeScreen> {
               // <---------------------------- new code added ---------------------------->
               initialSettings: InAppWebViewSettings(
                 javaScriptEnabled: true,
-                javaScriptCanOpenWindowsAutomatically: true, // ✅ allow window.open
-                supportMultipleWindows: true, // ✅ handle popups
+                javaScriptCanOpenWindowsAutomatically: true,
+                supportMultipleWindows: true,
                 cacheEnabled: true,
                 mediaPlaybackRequiresUserGesture: false,
                 supportZoom: true,
@@ -288,15 +694,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 thirdPartyCookiesEnabled: true,
                 domStorageEnabled: true,
                 applicationNameForUserAgent: Changes.AppTitle,
-                userAgent:
-                'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) '
-                    'Chrome/91.0.4472.120 Mobile Safari/537.36 ${Changes.AppTitle}/1.0',
+                userAgent: Platform.isIOS
+                    ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) '
+                      'Version/17.0 Mobile/15E148 Safari/604.1 ${Changes.AppTitle}/1.0'
+                    : 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/91.0.4472.120 Mobile Safari/537.36 ${Changes.AppTitle}/1.0',
               ),
+              // M2: Camera, image pickers, media – strictly deny until milestone 2 (blocks getUserMedia permission prompts)
               onPermissionRequest: (controller, request) async {
+                if (AppConfig.deliveryMilestone < 2) {
+                  return PermissionResponse(resources: request.resources, action: PermissionResponseAction.DENY);
+                }
                 return PermissionResponse(resources: request.resources, action: PermissionResponseAction.GRANT);
               },
-              // Track if the website already asked for geolocation permission
+              // M2: Geolocation and other permission prompts
               onGeolocationPermissionsShowPrompt: (controller, origin) async {
+                if (AppConfig.deliveryMilestone < 2) {
+                  return GeolocationPermissionShowPromptResponse(origin: origin, allow: false, retain: false);
+                }
                 if (hasGeolocationPermission) {
                   return GeolocationPermissionShowPromptResponse(origin: origin, allow: true, retain: true);
                 } else {
@@ -369,7 +784,30 @@ class _HomeScreenState extends State<HomeScreen> {
               // Positioned.fill(
             ),
           ),
-        ),// <-- move FAB to left
+        ),
+        floatingActionButton: _isPageLoaded
+            ? FloatingActionButton(
+                backgroundColor: MyColors.kmainColor,
+                child: const Icon(Icons.share, color: Colors.black),
+                onPressed: () async {
+                  final currentUrl = await _webViewController.getUrl();
+                  if (currentUrl != null && mounted) {
+                    await SharePlus.instance.share(
+                      ShareParams(
+                        text: currentUrl.toString(),
+                        subject: 'Check out this page!',
+                      ),
+                    );
+                  } else if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('No webpage loaded to share')),
+                    );
+                  }
+                },
+              )
+            : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       ),
     );
   }

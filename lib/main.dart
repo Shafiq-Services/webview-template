@@ -2,51 +2,36 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:galaxy2000_ai/config/app_config.dart';
+import 'package:galaxy2000_ai/controllers/app_initializer.dart';
 import 'package:galaxy2000_ai/view/screens/splash_onboarding/custom_splash_screen.dart';
 import 'package:media_store_plus/media_store_plus.dart';
 
-
-import 'config/app_config.dart';
-import 'controllers/app_initializer.dart';
-
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Force portrait mode
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  AppInitializer.initialize();
+  await AppInitializer.initialize();
   if (Platform.isAndroid) {
     await MediaStore.ensureInitialized();
     MediaStore.appFolder = Changes.androidMediaStoreFolderName;
   }
-  // Enable edge-to-edge mode
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  // Set transparent navigation bar
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Colors.transparent,
     systemNavigationBarIconBrightness: Brightness.light,
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
-  // run directly
   runApp(const MyApp());
-  // run with device preview
-  // runApp(
-  //   DevicePreview(
-  //     enabled: !kReleaseMode,
-  //     builder: (context) => MyApp(), // Wrap your app
-  //   ),
-  // );
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -60,4 +45,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

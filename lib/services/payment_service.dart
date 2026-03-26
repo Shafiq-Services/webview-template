@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -93,6 +94,7 @@ class PaymentService {
       
       if (purchaserInfo.entitlements.active.containsKey(PaymentConfig.entitlementId)) {
         onPurchaseSuccess?.call('Subscription activated!');
+        _reloadWebView();
         return true;
       } else {
         onPurchaseError?.call('Subscription not activated');
@@ -116,9 +118,15 @@ class PaymentService {
   
   Future<bool> restorePurchases() async {
     if (!_isInitialized) return false;
-    
+
     try {
       _customerInfo = await Purchases.restorePurchases();
+      final active = _customerInfo?.entitlements.active.containsKey(PaymentConfig.entitlementId) ?? false;
+      if (active && _customerInfo != null) {
+        final productId = _getHighestTierProduct(_customerInfo!.entitlements.active);
+        await _syncSubscription(_customerInfo!, productId: productId);
+        _reloadWebView();
+      }
       return true;
     } catch (e) {
       return false;
@@ -145,6 +153,21 @@ class PaymentService {
   /// Set webview controller for JWT token access
   void setWebViewController(dynamic controller) {
     _webViewController = controller;
+  }
+
+  /// Reload the WebView so the web app picks up the new subscription status
+  void _reloadWebView() {
+    if (_webViewController == null) return;
+    try {
+      _webViewController.reload();
+      if (PaymentConfig.debugMode) {
+        print('🔄 WebView reloaded after purchase');
+      }
+    } catch (e) {
+      if (PaymentConfig.debugMode) {
+        print('⚠️ WebView reload failed: $e');
+      }
+    }
   }
   
   /// Sync subscription status to Base44 after purchase
@@ -224,8 +247,8 @@ class PaymentService {
     try {
       final result = await _webViewController.evaluateJavascript(source: """
         (function() {
-          return localStorage.getItem('token') || 
-                 localStorage.getItem('base44_access_token') || 
+          return localStorage.getItem('base44_access_token') || 
+                 localStorage.getItem('token') || 
                  localStorage.getItem('jwt') || 
                  localStorage.getItem('auth_token') || 
                  localStorage.getItem('access_token') ||
@@ -264,6 +287,7 @@ class PaymentService {
       'revenuecat_customer_id': customerId,
       'product_id': productId,
       'is_active': isActive,
+      'subscription_source': Platform.isIOS ? 'apple' : 'google_play',
       if (expirationDate != null) 'expiration_date': expirationDate,
     };
     

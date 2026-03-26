@@ -7,8 +7,9 @@ This template project is configured for easy generation of both **signed app bun
 ### For New Projects from Template
 
 1. **Configure App Details**: 
-   - Update `lib/constants/my_app_urls.dart` with your app-specific information
-   - Update `lib/constants/web_interceptors_config.dart` to intercept web elements (optional)
+   - Update `lib/config/app_config.dart` (URLs, milestone, OneSignal, deep links)
+   - Update `lib/config/payment_config.dart` when using RevenueCat / backend sync
+   - Update `lib/config/webview_config.dart` to map subscription buttons (optional)
 2. **Set up Signing** (for production): Follow the [Signing Setup](#signing-setup) section
 3. **Build**: Run one of the provided build scripts
 
@@ -91,9 +92,10 @@ your_project/
 │   ├── key.properties.template     # Template for signing config
 │   ├── key.properties             # Your actual signing config (gitignored)
 │   └── keystores/                 # Store your keystores here (gitignored)
-├── lib/constants/
-│   ├── my_app_urls.dart           # App URLs and settings
-│   └── web_interceptors_config.dart  # Web element interceptions (optional)
+├── lib/config/
+│   ├── app_config.dart            # App URLs, milestone, OneSignal, deep links
+│   ├── payment_config.dart        # RevenueCat / backend keys
+│   └── webview_config.dart        # Subscription XPaths / hide elements (optional)
 ├── releases/                      # Generated builds appear here
 ├── build_releases.bat             # Windows build script
 ├── build_releases.ps1             # PowerShell build script
@@ -108,17 +110,16 @@ your_project/
 1. **Clone/Copy Template**
 2. **Update App Configuration**:
    ```dart
-   // lib/constants/my_app_urls.dart
-   class Changes {
-     static String mainUrl = 'https://your-new-app-domain.com';
-     static String AppTitle = 'Your New App Name';
+   // lib/config/app_config.dart
+   class AppConfig {
+     static const int deliveryMilestone = 1;
+     static String mainUrl = 'https://your-app.com/';
      static String oneSignalAppId = 'your-onesignal-id';
-     // ... other app-specific settings
+     // ...
    }
    
-   // lib/constants/web_interceptors_config.dart (optional)
-   // Configure click interceptions and element hiding
-   // See file for detailed instructions
+   // lib/config/webview_config.dart (optional)
+   // subscriptionButtons map: path → XPath + product IDs
    ```
 
 3. **Update App Identity**:

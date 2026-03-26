@@ -16,7 +16,8 @@ class NotificationService {
   // ONESIGNAL METHODS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Initialize OneSignal with error handling
+  /// Initialize OneSignal with error handling (Android + iOS).
+  /// iOS: Ensure Push Notifications capability and aps-environment in entitlements are set.
   static Future<void> initialize() async {
     try {
       if (_isInitialized) {
@@ -33,17 +34,19 @@ class NotificationService {
       OneSignal.initialize(Changes.oneSignalAppId);
       OneSignal.LiveActivities.setupDefault();
       
-      // Configure high-priority notification channel for Android
+      // Android: high-priority notification channel
       if (Platform.isAndroid) {
         await _configureAndroidNotificationChannel();
       }
+      // iOS: uses app icon from bundle for notification; ensure Runner has Push capability.
       
       _setupNotificationListeners();
       
       _isInitialized = true;
       debugPrint('🔔 OneSignal initialized successfully');
       
-      // Log subscription status after a delay to allow registration
+      // Log subscription status after a delay to allow registration.
+      // Use Subscription ID in OneSignal dashboard: Messages > Send Test Message > by Subscription ID.
       Future.delayed(const Duration(seconds: 3), () async {
         final subscriptionId = OneSignal.User.pushSubscription.id;
         final token = OneSignal.User.pushSubscription.token;

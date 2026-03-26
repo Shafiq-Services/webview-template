@@ -7,9 +7,15 @@ import '../models/web_element_interceptor_model.dart';
 /// This service allows you to register multiple element interceptors
 /// that will automatically inject JavaScript to intercept clicks on specific
 /// HTML elements and execute custom Flutter actions.
+///
+/// It also supports URL-conditioned scripts: run a JS script only when the
+/// current page URL matches a pattern (e.g. only on /addrecipe, not on /settings).
 class WebElementInterceptorService {
   /// List of registered interceptors
   final List<WebElementInterceptor> _interceptors = [];
+
+  /// URL pattern → script to run when URL matches (condition applied here)
+  final List<({String urlPattern, String script})> _urlScripts = [];
 
   /// Register a new element interceptor
   /// 
@@ -43,6 +49,15 @@ class WebElementInterceptorService {
   /// Clear all registered interceptors
   void clearInterceptors() {
     _interceptors.clear();
+  }
+
+  /// Register a script that runs only when the current page URL contains [urlPattern].
+  /// Use this to apply behaviour on specific pages (e.g. addrecipe) and not others (e.g. settings).
+  void registerUrlScript(String urlPattern, String script) {
+    _urlScripts.add((urlPattern: urlPattern.toLowerCase(), script: script));
+    if (kDebugMode) {
+      print('🔧 URL script registered for: $urlPattern');
+    }
   }
 
   /// Setup JavaScript handlers for all registered interceptors
@@ -79,6 +94,7 @@ class WebElementInterceptorService {
   }
 
   /// Inject JavaScript for matching interceptors on current URL
+  /// Also runs any URL-conditioned scripts whose urlPattern matches the current URL.
   /// Call this in onLoadStop and onUpdateVisitedHistory
   Future<void> injectInterceptors(
     InAppWebViewController controller,
@@ -90,6 +106,21 @@ class WebElementInterceptorService {
     final matchingInterceptors = _interceptors.where(
       (interceptor) => urlString.contains(interceptor.url.toLowerCase()),
     ).toList();
+
+    for (var entry in _urlScripts) {
+      if (urlString.contains(entry.urlPattern)) {
+        try {
+          await controller.evaluateJavascript(source: entry.script);
+          if (kDebugMode) {
+            print('🧩 URL script run for: ${entry.urlPattern}');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('❌ URL script failed for ${entry.urlPattern}: $e');
+          }
+        }
+      }
+    }
 
     if (matchingInterceptors.isEmpty) return;
 
@@ -320,6 +351,7 @@ class WebElementInterceptorService {
   /// Dispose resources
   void dispose() {
     _interceptors.clear();
+    _urlScripts.clear();
   }
 }
 

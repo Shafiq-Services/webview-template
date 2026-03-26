@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>PAIR - Long Distance Dating</string>
+	<string>WebView Template</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>PAIR - Long Distance Dating</string>
+	<string>galaxy2000_ai</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,7 +28,6 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -42,7 +41,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
@@ -52,23 +50,15 @@
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 
-	<!-- Camera -->
 	<key>NSCameraUsageDescription</key>
-	<string>PAIR uses your camera to capture photos and videos for sharing with your partner.</string>
-
-	<!-- Read from Photos (gallery) -->
+	<string>This app uses the camera when the website requests it (e.g. uploads).</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>PAIR accesses your photo library to share photos and videos with your partner.</string>
-
-	<!-- Location (required by App Store notice) -->
+	<string>This app accesses your photo library when the website requests it.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app may save images when the website requests it.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>PAIR uses your location to show distance between you and your partner.</string>
+	<string>This app may use your location when the website requests it.</string>
 
-	<!-- Push Notifications - Marketing and Updates -->
-	<key>NSUserNotificationAlertStyle</key>
-	<string>alert</string>
-	
-	<!-- Background App Refresh for notifications -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
@@ -76,5 +66,19 @@
 
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.sha.innosphere.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>myapp</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

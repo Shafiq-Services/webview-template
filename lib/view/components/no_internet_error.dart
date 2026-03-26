@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-  import 'package:google_fonts/google_fonts.dart';
 
+import '../../config/app_config.dart';
 import '../screens/webview_screens/home_screen.dart';
 
 class NoInternetErrorScreen extends StatefulWidget {
@@ -19,39 +19,59 @@ class _NoInternetErrorScreenState extends State<NoInternetErrorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0E8),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Headline
-                Text(
-                  'Not Connected to Wi-Fi',
-                  style: GoogleFonts.poppins(
-                    fontSize: 28,
+      body: Container(
+        decoration: BoxDecoration(
+          // gradient: LinearGradient(
+          //   begin: Alignment.topCenter,
+          //   end: Alignment.bottomCenter,
+          //   colors: [Color(0xFF111827), Color(0xFF1F2937)],
+          // ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Illustration
+              Icon(
+                Icons.wifi_off_rounded,
+                size: 120,
+                color: Colors.red,
+              ),
+              SizedBox(height: 16),
+
+              // Error Message
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  'No Internet Connection',
+                  style: TextStyle(
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFf1bcb5),
+                    color: MyColors.ksecondaryColor,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 24),
+              ),
+              SizedBox(height: 16),
 
-                // Body text
-                Text(
-                  'Please check your internet connection to continue.',
-                  style: GoogleFonts.poppins(
+              // Subtitle
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  'Please check your internet connection and try again',
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF333333),
+                    color: MyColors.ksecondaryColor,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 48),
+              ),
+              SizedBox(height: 48),
 
-                // Try Again Button
-                ElevatedButton(
+              // Reload Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (context) => HomeScreen()),
@@ -59,25 +79,31 @@ class _NoInternetErrorScreenState extends State<NoInternetErrorScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFf1bcb5),
+                    backgroundColor: Colors.blue.shade500,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 48, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    elevation: 0,
+                    elevation: 4,
                   ),
-                  child: Text(
-                    'Try Again',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh_rounded),
+                      SizedBox(width: 8),
+                      Text(
+                        'Reload',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

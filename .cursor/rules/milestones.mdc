@@ -1,0 +1,52 @@
+---
+description: Delivery milestones and feature gating — only enable features for the current milestone
+alwaysApply: true
+---
+
+# WebView Template — Delivery Milestones
+
+**Current milestone:** `AppConfig.deliveryMilestone` in `lib/config/app_config.dart`. When delivering milestone N, keep features for N+1 and above **disabled** unless the client has contracted them.
+
+## Milestone 1: Web to App
+- **Scope:** Splash, logo/icon, WebView, Android + iOS builds.
+- **Enabled:** Basic WebView only. No push init (beyond stub), no extra permissions beyond basics, no IAP.
+
+## Milestone 2: Permissions & notifications
+- **Scope:** Camera/media, file inputs, push readiness, WebView `onPermissionRequest`, geolocation prompt.
+- **Enabled:** M1 + `NotificationService.initialize()`, notification permission on splash, grant media/geo when `deliveryMilestone >= 2`.
+
+## Milestone 3: In-app purchase (Android)
+- **Scope:** RevenueCat on Google Play, subscription interceptors, `PaymentService` / `SubscriptionController` on **Android**.
+- **Enabled:** M2 + Android subscription flow and WebView bridge.
+
+## Milestone 4: Native share
+- **Scope:** `navigator.share` polyfill, native share sheet, optional backend URL for “share content” flows (`AppConfig.shareRecipeApiUrl`).
+- **Enabled:** M3 + share handlers (see `home_screen.dart`).
+
+## Milestone 5: IAP (iOS) & subscription management routing
+- **Scope:** RevenueCat on iOS, same payment features as Android on iOS; optional source-aware “manage subscription” routing (Play / Stripe / Apple) in the WebView layer.
+- **Enabled:** M4 + iOS IAP when `Platform.isIOS && deliveryMilestone >= 5`.
+
+## Milestone 6: Store submission support
+- **Scope:** Builds, console setup, review support — **no new app features**.
+
+---
+
+## Feature gating rules
+
+1. **Single source of truth:** `AppConfig.deliveryMilestone` (1–6).
+2. **Gate in code:** Use `AppConfig.deliveryMilestone >= N` for anything that belongs to milestone N or later.
+3. **Deliveries:** Set `deliveryMilestone` to the contracted milestone before handoff.
+
+### Feature → milestone
+
+| Feature | Milestone |
+|--------|-----------|
+| Splash, WebView, builds | 1 |
+| `NotificationService.initialize()`, notification permission | 2 |
+| Camera/media/geo/file handling in WebView | 2 |
+| Subscriptions (RevenueCat, interceptors) | 3 (Android), 5 (iOS) |
+| Native share / share polyfill | 4 |
+| Source-aware manage-subscription URLs | 5 |
+
+**M2 WebView gating:** `onPermissionRequest` and `onGeolocationPermissionsShowPrompt` deny until `deliveryMilestone >= 2`. File/image pickers from the web app should follow the same rule.

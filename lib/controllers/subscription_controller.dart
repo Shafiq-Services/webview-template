@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../config/payment_config.dart';
 import '../services/payment_service.dart';
 
 /// 🚀 SIMPLE Subscription Controller
@@ -86,14 +87,12 @@ class SubscriptionController {
   // 🚀 CONVENIENCE METHODS (Optional - for common cases)
   // ═══════════════════════════════════════════════════════════════════════════
   
-  /// Purchase monthly subscription (if your product ID is "monthly_premium")
   Future<bool> purchaseMonthlySubscription(BuildContext context) async {
-    return await purchaseProduct("monthly_premium", context);
+    return await purchaseProduct(PaymentConfig.monthlyProductId, context);
   }
 
-  /// Purchase yearly subscription (if your product ID is "yearly_premium")
   Future<bool> purchaseYearlySubscription(BuildContext context) async {
-    return await purchaseProduct("yearly_premium", context);
+    return await purchaseProduct(PaymentConfig.annualProductId, context);
   }
   
   /// Restore purchases

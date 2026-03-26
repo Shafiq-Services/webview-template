@@ -1,87 +1,25 @@
-================================================================================
-  QUICK START (3 STEPS)
-================================================================================
+WebView Template — Quick setup
+================================
 
-STEP 1: Basic App Configuration
---------------------------------
-File: lib/config/app_config.dart
+1) Configuration (only these three files under lib/config/)
+   - app_config.dart     — App name, URLs, colors, OneSignal app ID, deliveryMilestone, deep links (customScheme, deepLinkDomains), optional shareRecipeApiUrl (M4+).
+   - payment_config.dart — RevenueCat keys (iOS/Android), product IDs, entitlement id, optional Base44 sync URL/key.
+   - webview_config.dart — Subscription button XPaths → product IDs, hide elements.
 
-Change these values:
-  - appName: Your app name
-  - mainUrl: Your website URL
-  - oneSignalAppId: Your OneSignal ID (for push notifications)
-  - Colors: Your brand colors
-  
-  - Install rename tool:
-    flutter pub global activate rename
+2) Initialization
+   - main.dart calls await AppInitializer.initialize() (WebView debug, DeepLinkService, NotificationService when milestone >= 2).
 
-  - Change bundle ID:
-    rename setBundleId --targets ios,android --value "com.offsha.convoconnect"
+3) Deep links
+   - Match AndroidManifest intent-filters and iOS CFBundleURLTypes / associated domains to app_config customScheme and deepLinkDomains.
 
-  - Change app name:
-    rename setAppName --targets ios,android --value "Convo Connect"
+4) Milestones
+   - See .cursor/rules/milestones.mdc — set deliveryMilestone to the scope you are shipping.
 
-  - Change app icon:
-    Edit: icons_launcher.yaml
-    Run: dart run icons_launcher:create
+5) Rename package / app name (when forking)
+   - flutter pub run change_app_package_name:main com.yourcompany.app
+   - flutter pub run rename setAppName --targets ios,android --value "Your App"
 
+6) Build
+   - See BUILD_SETUP.md and build_releases.sh
 
-STEP 2: Payment Configuration (OPTIONAL - skip if no payments)
---------------------------------
-File: lib/config/payment_config.dart
-
-Change these values:
-  - revenueCatApiKey: iOS and Android keys from RevenueCat
-  - base44Url: Your backend URL
-  - base44ApiKey: Your backend API key
-
-This file is ONLY for API keys. Nothing else needed!
-
-
-STEP 3: WebView Configuration (OPTIONAL - skip if no customization)
---------------------------------
-File: lib/config/webview_config.dart
-
-Two types of configuration:
-
-A) Subscription Buttons (if using payments)
-   - Add button XPath and RevenueCat product ID
-   - Get XPath: Chrome DevTools → Right-click element → Copy XPath
-
-B) Hide Elements (if hiding parts of website)
-   - Add element XPath to hide list
-   - Get XPath: Same as above
-
-
-
-================================================================================
-  PROJECT STRUCTURE
-================================================================================
-
-lib/
-├── config/                      ← ALL CONFIGURATION HERE
-│   ├── app_config.dart          (Basic: name, URL, colors)
-│   ├── payment_config.dart      (Payments: API keys only)
-│   └── webview_config.dart      (WebView: buttons, hiding)
-
-================================================================================
-  PAYMENTS: HOW IT WORKS
-================================================================================
-
-Flow:
-  User clicks button in webview
-    ↓
-  App intercepts click (via XPath)
-    ↓
-  Opens RevenueCat payment sheet
-    ↓
-  After successful purchase, syncs to Base44 backend
-    ↓
-  Webview automatically shows new subscription status
-
-Key Points:
-  - All payment logic is handled automatically
-  - No need to write payment code
-  - Just configure button XPaths and product IDs
-  - Backend sync is automatic (if enabled)
-
+Architecture principles are in .cursor/rules/project-rules.mdc.
